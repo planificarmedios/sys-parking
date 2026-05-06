@@ -111,7 +111,14 @@ if ($_GET['form'] == 'add') {
         'cobranzas' => 'Cobranzas',
         'user'      => 'Usuarios',
         'simulador' => 'Simulador',
+        'caja'      => 'Caja',
         'tarifas'   => 'Tarifas',
+        'categorias' => 'Categorías de Vehículos',
+    ];
+
+?>
+
+  => 'Tarifas',
     ];
 ?>
 

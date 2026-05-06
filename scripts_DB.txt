@@ -1,0 +1,70 @@
+CREATE TABLE categorias (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nombre VARCHAR(50) NOT NULL,
+  activo TINYINT(1) DEFAULT 1,
+  fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE tarifas_categoria (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  categoria_id INT NOT NULL,
+  valor_hora DECIMAL(10,2) DEFAULT 0,
+  valor_fraccion DECIMAL(10,2) DEFAULT 0,
+  minutos_fraccion INT DEFAULT 0,
+  valor_maximo DECIMAL(10,2) DEFAULT 0,
+  activo TINYINT(1) DEFAULT 1,
+  fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+  INDEX (categoria_id),
+
+  CONSTRAINT fk_categoria
+    FOREIGN KEY (categoria_id)
+    REFERENCES categorias(id)
+    ON DELETE RESTRICT
+    ON UPDATE CASCADE
+);
+
+ALTER TABLE tarifas ADD categoria_id INT NULL;
+
+ALTER TABLE clientes ADD categoria_id INT;
+
+ALTER TABLE clientes
+ADD FOREIGN KEY (categoria_id) REFERENCES categorias(id);
+
+CREATE TABLE caja (
+
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    vehiculo_id INT NOT NULL,
+    cliente_id INT NULL,
+
+    patente VARCHAR(20) NOT NULL,
+
+    categoria_id INT NULL,
+    tarifa_id INT NULL,
+
+    concepto VARCHAR(255) NOT NULL,
+
+    medio_cobro VARCHAR(50) NOT NULL,
+
+    monto DECIMAL(10,2) NOT NULL DEFAULT 0,
+
+    fecha_movimiento DATETIME NOT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+);
+
+ALTER TABLE vehiculos
+ADD COLUMN cliente_id INT NULL;
+
+ALTER TABLE vehiculos
+ADD COLUMN fecha_egreso DATE NULL,
+ADD COLUMN hora_egreso TIME NULL,
+ADD COLUMN estado VARCHAR(30) DEFAULT 'activo';
+
+ALTER TABLE vehiculos
+ADD categoria_id INT NULL;
+
+ALTER TABLE caja
+ADD detalle LONGTEXT NULL;

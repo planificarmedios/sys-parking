@@ -19,6 +19,9 @@ else {
     $descripcion = mysqli_real_escape_string($mysqli, $_POST['descripcion']);
     $unidad      = mysqli_real_escape_string($mysqli, $_POST['unidad']);
     $valor       = (int) $_POST['valor'];
+    $categoria_id = !empty($_POST['categoria_id']) 
+                ? (int) $_POST['categoria_id'] 
+                : "NULL";
 
     // Normalizar monto
     $monto_raw = str_replace('.', '', $_POST['monto']);
@@ -31,14 +34,14 @@ else {
 
     // 👉 si esta es default, desmarco las demás
     if ($es_default == 1) {
-      mysqli_query($mysqli, "UPDATE tarifas SET es_default = 0");
+      mysqli_query($mysqli, "UPDATE tarifas SET es_default = 0 where categoria_id = $categoria_id");
     }
 
     $query = mysqli_query($mysqli, "
         INSERT INTO tarifas 
-            (descripcion, unidad, valor, monto, es_tarifa_fraccionable, activo, es_default)
+            (descripcion, unidad, valor, monto, es_tarifa_fraccionable, activo, es_default, categoria_id)
         VALUES 
-            ('$descripcion', '$unidad', '$valor', '$monto', '$fraccionable', '$activo', '$es_default')
+            ('$descripcion', '$unidad', '$valor', '$monto', '$fraccionable', '$activo', '$es_default', '$categoria_id')
     ") or die(mysqli_error($mysqli));
 
     if ($query) {
@@ -59,19 +62,24 @@ else {
         $unidad      = mysqli_real_escape_string($mysqli, $_POST['unidad']);
         $valor       = (int) $_POST['valor'];
         $monto       = (float) $_POST['monto'];
-        $fraccionable = ($_POST['es_tarifa_fraccionable'] == 1) ? '1' : '0';
+        $fraccionable = isset($_POST['es_tarifa_fraccionable']) ? 1 : 0;
         $activo      = ($_POST['activo'] == 1) ? 1 : 0;
         $es_default   = isset($_POST['es_default']) ? (int) $_POST['es_default'] : 0;
+        $categoria_id = !empty($_POST['categoria_id']) ? (int) $_POST['categoria_id'] : NULL;
 
         // 👉 si marca default, desmarca las otras
         if ($es_default == 1) {
-        mysqli_query($mysqli, "UPDATE tarifas SET es_default = 0 WHERE id != $id_tarifa");
+        mysqli_query($mysqli, "UPDATE tarifas SET es_default = 0 
+        WHERE id != $id_tarifa
+        AND categoria_id = $categoria_id
+        ");
         }
 
 
         $query = mysqli_query($mysqli, "
             UPDATE tarifas SET
                 descripcion = '$descripcion',
+                categoria_id = $categoria_id,
                 unidad = '$unidad',
                 valor = '$valor',
                 monto = '$monto',

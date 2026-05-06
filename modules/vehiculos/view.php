@@ -44,13 +44,18 @@
             FROM vehiculos v
             INNER JOIN tarifas t ON t.id = v.tarifa_id
             WHERE v.en_playa = 1
+            AND
+            v.fecha_egreso IS NULL
             ORDER BY v.id DESC
         ");
 
         $no = 1;
+        
         while ($data = mysqli_fetch_assoc($query)) {
           $fecha = date('d/m/Y', strtotime($data['fecha_ingreso']));
           $hora  = date('H:i', strtotime($data['hora_ingreso']));
+          
+          echo "<script>console.log(" . json_encode($data) . ");</script>";
         ?>
           <tr>
             <td><?= $no++ ?></td>
@@ -58,11 +63,6 @@
             <td><center><?= $fecha . ' ' . $hora ?></td>
             <td><center><?= $data['descripcion'] ?></td>
             <td class="text-center">
-
-              <a data-toggle="tooltip" data-placement="top" title="Modificar" class="btn btn-warning btn-sm"
-                 href="?module=form_vehiculos&form=edit&id=<?= $data['id'] ?>">
-                 <i class="fa fa-pencil"></i>
-              </a>
 
               <?php if ($_SESSION['permisos_acceso'] == 'Super Admin') { ?>
 
@@ -80,8 +80,13 @@
                  <i class="fa fa-print"></i>
               </a>
 
+              <a data-toggle="tooltip" data-placement="top" title="Ticket prueba" class="btn btn-danger btn-sm" 
+              href="modules/vehiculos/ticket_prueba.php?id=<?= $data['id'] ?>&preview=1" rel="noopener noreferrer" target="_blank">
+                 <i class="fa fa-print"></i>
+              </a>
+
               <a data-toggle="tooltip"  class="btn btn-success btn-sm" data-placement="top" title="Registrar salida" 
-                href="?module=form_vehiculos&form=cobrar&id=<?= $data['id'] ?>">
+                href="?module=form_vehiculos&form=cobrar&id=<?= $data['id'] ?>&tarifa_id=<?= $data['tarifa_id'] ?>">
                 <i class="fa fa-arrow-right"></i>
               </a>
 

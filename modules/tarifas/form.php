@@ -22,6 +22,30 @@ if ($_GET['form']=='add') { ?>
 
           <div class="box-body">
 
+          <div class="form-group">
+            <label class="col-sm-2 control-label">Categoría</label>
+            <div class="col-sm-5">
+              <select name="categoria_id" class="form-control">
+                <option value="">General (sin categoría)</option>
+
+                <?php
+                $categorias = mysqli_query($mysqli, "
+                  SELECT id, nombre 
+                  FROM categorias 
+                  WHERE activo = 1
+                  ORDER BY nombre ASC
+                ");
+
+                while ($c = mysqli_fetch_assoc($categorias)) {
+                  echo "<option value='{$c['id']}'>
+                          {$c['nombre']}
+                        </option>";
+                }
+                ?>
+              </select>
+            </div>
+          </div>
+
             <div class="form-group">
               <label class="col-sm-2 control-label">Descripción</label>
               <div class="col-sm-5">
@@ -139,6 +163,33 @@ elseif ($_GET['form']=='edit') {
           <div class="box-body">
 
             <input type="hidden" name="id" value="<?php echo $data['id']; ?>">
+
+            <div class="form-group">
+              <label class="col-sm-2 control-label">Categoría</label>
+              <div class="col-sm-5">
+                <select name="categoria_id" class="form-control">
+                  <option value="">General (sin categoría)</option>
+
+                  <?php
+                  $categorias = mysqli_query($mysqli, "
+                    SELECT id, nombre 
+                    FROM categorias 
+                    WHERE activo = 1
+                    ORDER BY nombre ASC
+                  ");
+
+                  while ($c = mysqli_fetch_assoc($categorias)) {
+
+                    $selected = ($data['categoria_id'] == $c['id']) ? 'selected' : '';
+
+                    echo "<option value='{$c['id']}' $selected>
+                            {$c['nombre']}
+                          </option>";
+                  }
+                  ?>
+                </select>
+              </div>
+            </div>
 
             <div class="form-group">
               <label class="col-sm-2 control-label">Descripción</label>

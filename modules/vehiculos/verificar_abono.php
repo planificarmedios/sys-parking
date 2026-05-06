@@ -16,8 +16,9 @@ if ($patente === '') {
 }
 
 $sql = "
-  SELECT
+SELECT
   a.tarifa_id,
+  a.categoria_id,
   t.descripcion AS tarifa,
   a.patente,
   a.fecha_fin
@@ -25,7 +26,9 @@ FROM clientes a
 INNER JOIN tarifas t ON t.id = a.tarifa_id
 WHERE 
   a.activo = 1
-  AND a.patente = ?;
+  AND a.patente = ?
+ORDER BY a.fecha_fin DESC, a.id DESC
+LIMIT 1
 ";
 
 
@@ -45,6 +48,7 @@ $vigente = ($fechaFinRaw >= $hoy);
   $response = [
   'tiene_abono'  => true,
   'tarifa_id'    => (int)$row['tarifa_id'],
+  'categoria_id' => (int)$row['categoria_id'],
   'tarifa'       => $row['tarifa'],
   'fecha_egreso' => date('d/m/Y', strtotime($fechaFinRaw)),
   'vigente'      => $vigente

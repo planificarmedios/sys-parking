@@ -87,6 +87,7 @@
             <thead>
               <tr>
                 <th class="center">Patente</th>
+                <th class="center">Categoría</th>
                 <th class="center">Cliente</th>
                 <th class="center">Fecha Inicio</th>
                 <th class="center">Fecha Fin</th>
@@ -100,11 +101,18 @@
             $no = 1;
             $hoy = date('Y-m-d');
       
-            $query = mysqli_query($mysqli, "SELECT c.*, c.telefonos as celular, t.descripcion AS tarifa
+            $query = mysqli_query($mysqli, "SELECT 
+                                                c.*, 
+                                                c.telefonos AS celular,
+                                                t.descripcion AS tarifa,
+                                                cat.nombre AS categoria
                                             FROM clientes c
-                                            JOIN tarifas t ON t.id = c.tarifa_id
-                                            ORDER BY id ASC")
-                                            or die('error: '.mysqli_error($mysqli));
+                                            LEFT JOIN tarifas t 
+                                                ON t.id = c.tarifa_id
+                                            LEFT JOIN categorias cat 
+                                                ON cat.id = c.categoria_id
+                                            ORDER BY c.id ASC"
+                                            )or die('error: '.mysqli_error($mysqli));
 
 
             while ($data = mysqli_fetch_assoc($query)) {
@@ -112,22 +120,44 @@
           $fecha_inicio_db = $data['fecha_inicio']; // Y-m-d
           $fecha_fin_db    = $data['fecha_fin'];    // Y-m-d
           $vigente = ($data['activo'] == 1 && $fecha_fin_db >= $hoy);
+          $tipo = ($vigente) ? 'Abono' : 'Ocasional';
 
           // Solo para mostrar
           $fecha_inicio = date('d/m/Y', strtotime($fecha_inicio_db));
           $fecha_fin    = date('d/m/Y', strtotime($fecha_fin_db));
 
-          $estado = $vigente ? 'Vigente' : 'Vencido';
-          $activo = $data['activo'] == 1 ? 'Activo' : 'Inactivo';
+          $estado = '';
+          if ($data['activo'] == 0) {
+              $estado = 'Inactivo';
+          } elseif ($fecha_fin_db >= $hoy) {
+              $estado = 'Vigente';
+          } else {
+              $estado = 'Vencido';
+          }
+
+          $label = '';
+          switch ($estado) {
+              case 'Vigente':
+                  $label = "<span class='badge-custom badge-vigente'>Vigente</span>";
+                  break;
+
+              case 'Vencido':
+                  $label = "<span class='badge-custom badge-vencido'>Vencido</span>";
+                  break;
+
+              default:
+                  $label = "<span class='badge-custom badge-inactivo'>Inactivo</span>";
+          }
 
           echo "<tr>
-            <td><center>{$data['patente']}</center></td>
-            <td><center>{$data['denominacion']}</center></td>
-            <td><center>{$fecha_inicio}</center></td>
-            <td><center>{$fecha_fin}</center></td>
-            <td><center>{$estado}</center></td>
-            <td><center>{$data['tarifa']}</center></td>
-            <td class='center' width='120'>
+          <td><center>".strtoupper($data['patente'])."</center></td>
+          <td><center>{$data['categoria']}</center></td>
+          <td><center>{$data['denominacion']}</center></td>
+          <td><center>{$fecha_inicio}</center></td>
+          <td><center>{$fecha_fin}</center></td>
+          <td class='center'>$label</td>
+          <td><center>".($data['tarifa'] ?? '-')."</center></td>
+          <td class='center' width='120'>
               <div>
 
                 <a data-toggle='tooltip' title='Modificar' class='btn btn-primary btn-sm'
@@ -138,7 +168,7 @@
                   if ($data['activo'] == 1) {
                       echo "
                               <a data-toggle='tooltip' title='Eliminar' class='btn btn-danger btn-sm'
-                                href='modules/clients/proses.php?act=delete&id={$data['id']}'
+                                href='modules/clients/proces.php?act=delete&id={$data['id']}'
                                 onclick=\"return confirm('¿Estás seguro de eliminar a {$data['denominacion']}?');\">
                                 <i style='color:#fff' class='glyphicon glyphicon-trash'></i>
                               </a>";

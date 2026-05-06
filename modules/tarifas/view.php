@@ -47,8 +47,9 @@
           <table id="dataTables1" class="table table-bordered table-striped table-hover">
             <thead>
               <tr>
-                <th class="center">No.</th>
+                <th class="center" hidden>No.</th>
                 <th class="center">Descripción</th>
+                <th class="center">Categoría</th>
                 <th class="center">Unidad</th>
                 <th class="center">Valor</th>
                 <th class="center">Monto</th>
@@ -64,7 +65,10 @@
             $no = 1;
             $query = mysqli_query(
               $mysqli,
-              "SELECT * FROM tarifas ORDER BY id DESC"
+              "SELECT t.*, c.nombre as categoria
+                FROM tarifas t
+                LEFT JOIN categorias c ON c.id = t.categoria_id
+                ORDER BY t.id DESC"
             ) or die('error: '.mysqli_error($mysqli));
 
             while ($data = mysqli_fetch_assoc($query)) {
@@ -75,11 +79,12 @@
 
 
               echo "<tr>
-                      <td width='30' class='center'>$no</td>
-                      <td>$data[descripcion]</td>
+                      <td width='30' class='center' hidden>$no</td>
+                      <td >$data[descripcion]</td>
+                      <td class='center'>".($data['categoria'] ?? 'General')."</td>
                       <td class='center'>$data[unidad]</td>
                       <td class='center'>$data[valor]</td>
-                      <td align='right'>$ ".number_format($data['monto'], 0, ',', '.')."</td>
+                      <td class='center'>$ ".number_format($data['monto'], 0, ',', '.')."</td>
                       <td class='center'>$fraccionable</td>
                       <td class='center'>$es_default</td>
                       <td class='center'>$estado</td>

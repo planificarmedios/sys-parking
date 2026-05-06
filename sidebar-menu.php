@@ -53,6 +53,22 @@ function puedeVer($modulo, $lista) {
   </li>
   <?php } ?>
 
+  <?php if (puedeVer('caja', $modulosPermitidos)) { ?>
+  <li class="<?= ($_GET['module']=='caja' || $_GET['module']=='form_caja') ? 'active' : '' ?>">
+    <a href="?module=caja">
+      <i class="fa fa-money"></i> <span>Caja</span>
+    </a>
+  </li>
+  <?php } ?>
+
+  <?php if (puedeVer('categorias', $modulosPermitidos)) { ?>
+  <li class="<?= ($_GET['module']=='categorias' || $_GET['module']=='form_categorias') ? 'active' : '' ?>">
+    <a href="?module=categorias">
+      <i class="fa fa-flask"></i> <span>Categoría de Vehículos</span>
+    </a>
+  </li>
+  <?php } ?>
+
   <?php if (puedeVer('clients', $modulosPermitidos)) { ?>
   <li class="<?= ($_GET['module']=='clients') ? 'active' : '' ?>">
     <a href="?module=clients">
