@@ -56,6 +56,10 @@ switch ($module) {
         include "modules/categorias/form.php";
         break;
 
+    case 'form_caja':
+        include "modules/caja/form.php";
+        break;
+
     case 'medicines_transaction':
         include "modules/medicines_transaction/view.php";
         break;

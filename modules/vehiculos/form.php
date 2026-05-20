@@ -16,180 +16,310 @@ if ($_GET['form'] == 'add') {
 
       <div class="box box-primary">
 
-        <form class="form-horizontal"
-              method="POST"
-              action="modules/vehiculos/proces.php?act=insert">
+        <form class="form-horizontal" method="POST" action="modules/vehiculos/proces.php?act=insert">
 
-          <div class="box-body">
+            <div class="box-body">
 
-            <!-- PATENTE -->
-            <div class="form-group">
-              <label class="col-sm-2 control-label">Patente</label>
+                <!-- PATENTE -->
 
-              <div class="col-sm-5">
-                <input
-                  id="patente"
-                  type="text"
-                  name="patente"
-                  class="form-control"
-                  autocomplete="on"
-                  required
-                  autofocus>
-              </div>
+                <div class="form-group">
+
+                    <label class="col-sm-2 control-label">
+                        Patente
+                    </label>
+
+                    <div class="col-sm-5">
+
+                        <input
+                            id="patente"
+                            type="text"
+                            name="patente"
+                            class="form-control"
+                            autocomplete="on"
+                            required
+                            autofocus>
+
+                    </div>
+
+                </div>
+
+                <!-- FECHA -->
+
+                <div class="form-group">
+
+                    <label class="col-sm-2 control-label">
+                        Fecha ingreso
+                    </label>
+
+                    <div class="col-sm-5">
+
+                        <input type="text"
+                            class="form-control"
+                            value="<?= date('d/m/Y') ?>"
+                            readonly>
+
+                    </div>
+
+                </div>
+
+                <!-- HORA -->
+
+                <div class="form-group">
+
+                    <label class="col-sm-2 control-label">
+                        Hora ingreso
+                    </label>
+
+                    <div class="col-sm-5">
+
+                        <input type="text"
+                            class="form-control"
+                            value="<?= date('H:i') ?>"
+                            readonly>
+
+                    </div>
+
+                </div>
+
+                <!-- VENCE -->
+
+                <div class="form-group"
+                    id="grupo_fecha_fin"
+                    style="display:none;">
+
+                    <label class="col-sm-2 control-label">
+                        Vence
+                    </label>
+
+                    <div class="col-sm-5">
+
+                        <input type="text"
+                            id="fecha_fin_abono"
+                            class="form-control"
+                            readonly>
+
+                    </div>
+
+                </div>
+
+                <!-- CATEGORIA -->
+
+                <div class="form-group">
+
+                    <label class="col-sm-2 control-label">
+                        Categoría Vehículo
+                    </label>
+
+                    <div class="col-sm-5">
+
+                        <select id="categoria_id"
+                                name="categoria_id"
+                                class="form-control"
+                                required>
+
+                            <option value="">
+                                Seleccionar categoría
+                            </option>
+
+                            <?php
+
+                            $cats = mysqli_query(
+                                $mysqli,
+                                "SELECT *
+                                FROM categorias
+                                WHERE activo = 1
+                                ORDER BY nombre ASC"
+                            );
+
+                            while ($c = mysqli_fetch_assoc($cats)) {
+
+                                echo "
+                                <option value='{$c['id']}'>
+                                    {$c['nombre']}
+                                </option>";
+                            }
+
+                            ?>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+                <!-- TARIFA -->
+
+                <div class="form-group">
+
+                    <label class="col-sm-2 control-label">
+                        Tarifa
+                    </label>
+
+                    <div class="col-sm-5">
+
+                        <select id="tarifa_id"
+                                class="form-control"
+                                required>
+
+                            <option value="">
+                                Seleccionar tarifa
+                            </option>
+
+                        </select>
+
+                        <input type="hidden"
+                            name="tarifa_id"
+                            id="tarifa_hidden">
+
+                    </div>
+
+                </div>
+
+                <!-- MEDIO COBRO -->
+
+                <div class="form-group"
+                    id="grupo_pago_anticipado"
+                    style="display:none;">
+
+                    <label class="col-sm-2 control-label">
+                        Medio de cobro
+                    </label>
+
+                    <div class="col-sm-5">
+
+                        <select name="medio_cobro"
+                                id="medio_cobro"
+                                class="form-control">
+
+                            <option value="">
+                                Seleccionar medio
+                            </option>
+
+                            <option value="efectivo">
+                                Efectivo
+                            </option>
+
+                            <option value="mercadopago">
+                                Mercado Pago
+                            </option>
+
+                            <option value="transferencia">
+                                Transferencia
+                            </option>
+
+                            <option value="CuentaDNI">
+                                Cuenta DNI
+                            </option>
+
+                            <option value="tarjeta">
+                                Tarjeta
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+                <!-- TOTAL ESTADIA -->
+
+                <div class="form-group"
+                    id="grupo_monto_estadia"
+                    style="display:none;">
+
+                    <label class="col-sm-2 control-label">
+                        Total a cobrar
+                    </label>
+
+                    <div class="col-sm-5">
+
+                        <input type="text"
+                            id="monto_estadia"
+                            class="form-control"
+                            readonly>
+
+                    </div>
+
+                </div>
+
+                <!-- MENSAJE -->
+
+                <div class="form-group"
+                    id="grupo_mensaje_estadia"
+                    style="display:none;">
+
+                    <div class="col-sm-offset-2 col-sm-5">
+
+                        <div class="alert alert-info"
+                            style="margin-bottom:0;">
+
+                            <i class="fa fa-info-circle"></i>
+
+                            Esta tarifa se cobra al momento
+                            del ingreso.
+
+                        </div>
+
+                    </div>
+
+                </div>
+
             </div>
 
-            <!-- FECHA -->
-            <div class="form-group">
-              <label class="col-sm-2 control-label">Fecha ingreso</label>
+                <!-- FOOTER -->
 
-              <div class="col-sm-5">
-                <input type="text"
-                       class="form-control"
-                       value="<?= date('d/m/Y') ?>"
-                       readonly>
-              </div>
-            </div>
+                <div class="box-footer">
 
-            <!-- HORA -->
-            <div class="form-group">
-              <label class="col-sm-2 control-label">Hora ingreso</label>
+                    <!-- TICKET -->
 
-              <div class="col-sm-5">
-                <input type="text"
-                       class="form-control"
-                       value="<?= date('H:i') ?>"
-                       readonly>
-              </div>
-            </div>
+                    <div class="form-group">
 
-            <!-- VENCE -->
-            <div class="form-group"
-                 id="grupo_fecha_fin"
-                 style="display:none;">
+                        <label class="col-sm-2 control-label">
+                            Ticket
+                        </label>
 
-              <label class="col-sm-2 control-label">Vence</label>
+                        <div class="col-sm-5">
 
-              <div class="col-sm-5">
-                <input type="text"
-                       id="fecha_fin_abono"
-                       class="form-control"
-                       readonly>
-              </div>
-            </div>
+                            <label class="radio-inline">
 
-            <!-- CATEGORÍA -->
-            <div class="form-group">
+                                <input type="radio"
+                                    name="modo_ticket"
+                                    value="directo"
+                                    checked>
 
-              <label class="col-sm-2 control-label">
-                Categoría Vehículo
-              </label>
+                                Imprimir directamente
 
-              <div class="col-sm-5">
+                            </label>
 
-                <select id="categoria_id" name="categoria_id" class="form-control" required>
+                        </div>
 
-                  <option value="">
-                    Seleccionar categoría
-                  </option>
+                    </div>
 
-                  <?php
+                    <!-- BOTONES -->
 
-                  $cats = mysqli_query(
-                    $mysqli,
-                    "SELECT *
-                     FROM categorias
-                     WHERE activo = 1
-                     ORDER BY nombre ASC"
-                  );
+                    <div class="form-group">
 
-                  while ($c = mysqli_fetch_assoc($cats)) {
+                        <div class="col-sm-offset-2 col-sm-10">
 
-                    echo "
-                    <option value='{$c['id']}'>
-                      {$c['nombre']}
-                    </option>";
-                  }
+                            <button type="submit"
+                                    class="btn btn-primary">
 
-                  ?>
+                                Guardar
 
-                </select>
+                            </button>
 
-              </div>
-            </div>
+                            <a href="?module=vehiculos"
+                            class="btn btn-default">
 
-            <!-- TARIFA -->
-            <div class="form-group">
+                                Cancelar
 
-              <label class="col-sm-2 control-label">
-                Tarifa
-              </label>
+                            </a>
 
-              <div class="col-sm-5">
+                        </div>
 
-                <select id="tarifa_id"
-                        class="form-control"
-                        required>
+                    </div>
 
-                  <option value="">
-                    Seleccionar tarifa
-                  </option>
-
-                </select>
-
-                <input type="hidden"
-                       name="tarifa_id"
-                       id="tarifa_hidden">
-
-              </div>
-            </div>
-
-          </div>
-
-          <div class="box-footer">
-
-            <div class="form-group">
-
-              <label class="col-sm-2 control-label">
-                Ticket
-              </label>
-
-              <div class="col-sm-5">
-
-                <label class="radio-inline">
-                  <input type="radio"
-                         name="modo_ticket"
-                         value="directo"
-                         checked>
-
-                  Imprimir directamente
-                </label>
-
-              </div>
-            </div>
-
-            <div class="form-group">
-
-              <div class="col-sm-offset-2 col-sm-10">
-
-                <button type="submit"
-                        class="btn btn-primary">
-
-                  Guardar
-
-                </button>
-
-                <a href="?module=vehiculos"
-                   class="btn btn-default">
-
-                  Cancelar
-
-                </a>
-
-              </div>
-
-            </div>
-
-          </div>
+                </div>
 
         </form>
 
@@ -211,6 +341,7 @@ document.addEventListener('DOMContentLoaded', function () {
     patenteInput.addEventListener('blur', function () {
 
         const patente = this.value.trim().toUpperCase();
+        document.getElementById('categoria_id').value = '';
 
         if (patente.length < 5) return;
 
@@ -218,19 +349,37 @@ document.addEventListener('DOMContentLoaded', function () {
 
     });
 
-    categoria.addEventListener('change', function () {
-        
+    categoria.addEventListener('change', function () {       
         cargarTarifas(this.value);
-        console.log('linea 224', this.value);
     });
 
-    tarifa.addEventListener('change', function () {
+    const grupoPago =
+    document.getElementById(
+        'grupo_pago_anticipado'
+    );
 
-        tarifaHidden.value = this.value;
+    const grupoMonto =
+        document.getElementById(
+            'grupo_monto_estadia'
+        );
+
+    const grupoMensaje =
+        document.getElementById(
+            'grupo_mensaje_estadia'
+        );
+
+    const montoEstadia =
+        document.getElementById(
+            'monto_estadia'
+        );
+
+        tarifa.addEventListener('change', function () {
+
+            actualizarVistaEstadia();
+
+        });
 
     });
-
-});
 
 function verificarCliente(patente) {
 
@@ -249,7 +398,6 @@ function verificarCliente(patente) {
     .then(res => res.json())
 
     .then(data => {
-
         manejarCliente(data);
 
     })
@@ -267,40 +415,95 @@ function verificarCliente(patente) {
 ===================================================== */
 
 function manejarCliente(data) {
+    
+    const patenteInput =
+        document.getElementById('patente');
 
-    const categoria = document.getElementById('categoria_id');
-    const tarifa    = document.getElementById('tarifa_id');
+    const categoria =
+        document.getElementById('categoria_id');
+
+    const tarifa =
+        document.getElementById('tarifa_id');
+
+    const btnGuardar =
+        document.querySelector(
+            'button[type="submit"]'
+        );
+
+    /* =========================================
+       VEHÍCULO YA INGRESADO
+    ========================================= */
+
+    if (data.vehiculo_abierto) {
+
+        Swal.fire({
+            icon: 'warning',
+            title: 'Vehículo ya ingresado',
+            text:
+                'La patente ya posee un ingreso sin registrar salida.'
+        });
+
+        btnGuardar.disabled = true;
+
+        patenteInput.value = '';
+
+        setTimeout(() => {
+
+            patenteInput.focus();
+
+        }, 300);
+
+        return;
+    }
+
+    btnGuardar.disabled = false;
+
+    /* =========================================
+       CLIENTE CON ABONO
+    ========================================= */
 
     if (data.tiene_abono) {
 
-        categoria.value = String(data.categoria_id);
+        categoria.value =
+            String(data.categoria_id);
 
         cargarTarifas(
             data.categoria_id,
             data.tarifa_id,
-            data.vigente
+            data.vigente,
+            true
         );
 
-        mostrarFechaFin(data.fecha_egreso);
+        mostrarFechaFin(
+            data.fecha_egreso
+        );
 
         categoria.disabled = true;
 
         if (data.vigente) {
 
             toastSuccess(
-                'Abono vigente hasta ' + data.fecha_egreso
+                'Abono vigente hasta '
+                + data.fecha_egreso
             );
 
         } else {
 
             toastWarning(
-                'Abono vencido el ' + data.fecha_egreso
+                'Abono vencido el '
+                + data.fecha_egreso
             );
 
             tarifa.disabled = false;
         }
 
-    } else {
+    }
+
+    /* =========================================
+       CLIENTE SIN ABONO
+    ========================================= */
+
+    else {
 
         ocultarFechaFin();
 
@@ -308,24 +511,26 @@ function manejarCliente(data) {
 
         tarifa.disabled = false;
 
-        tarifa.innerHTML =
-            '<option value="">Seleccionar tarifa</option>';
-
+        tarifa.innerHTML = `
+            <option value="">
+                Seleccionar tarifa
+            </option>
+        `;
     }
-
 }
-
 
 function cargarTarifas(
     categoriaId,
     tarifaSeleccionada = null,
-    bloquear = false
+    bloquear = false,
+    incluirTodas = false
 ) {
 
     fetch(
-        '/sys_parking/modules/vehiculos/tarifas_categoria.php?categoria_id='
-        + categoriaId
-    )
+    '/sys_parking/modules/vehiculos/tarifas_categoria.php?categoria_id='
+    + categoriaId
+    + '&todas=' + (incluirTodas ? 1 : 0)
+)
 
     .then(res => res.json())
 
@@ -346,9 +551,15 @@ function cargarTarifas(
         data.forEach(t => {
 
             const option = document.createElement('option');
+
             option.value = t.id;
+
             option.textContent = t.descripcion;
+
             option.dataset.default = t.es_default;
+            option.dataset.tope = t.es_tope_diario;
+
+            option.dataset.monto = t.monto;
 
             if (
                 String(t.id) ===
@@ -380,6 +591,10 @@ function cargarTarifas(
         tarifa.value;
 
         tarifa.disabled = bloquear;
+        actualizarVistaEstadia();
+        tarifa.dispatchEvent(
+            new Event('change')
+        );
 
     })
 
@@ -388,6 +603,89 @@ function cargarTarifas(
         console.error(err);
 
     });
+
+}
+
+function actualizarVistaEstadia() {
+
+    const tarifa =
+        document.getElementById('tarifa_id');
+
+    const option =
+        tarifa.options[tarifa.selectedIndex];
+
+    if (!option) {
+        return;
+    }
+
+    /*
+        NORMALIZAR TEXTO
+    */
+
+    const texto =
+        option.text
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "");
+
+    const monto =
+        option.dataset.monto || 0;
+
+    const grupoPago =
+        document.getElementById(
+            'grupo_pago_anticipado'
+        );
+
+    const grupoMonto =
+        document.getElementById(
+            'grupo_monto_estadia'
+        );
+
+    const grupoMensaje =
+        document.getElementById(
+            'grupo_mensaje_estadia'
+        );
+
+    const montoEstadia =
+        document.getElementById(
+            'monto_estadia'
+        );
+
+    /*
+        DETECTAR ESTADIA
+    */
+
+    const esEstadia = parseInt(option.dataset.tope) === 1;
+
+    if (esEstadia) {
+
+        grupoPago.style.display = 'block';
+
+        grupoMonto.style.display = 'block';
+
+        grupoMensaje.style.display = 'block';
+
+        montoEstadia.value =
+            '$ ' +
+            parseFloat(monto)
+            .toLocaleString(
+                'es-AR',
+                {
+                    minimumFractionDigits: 2
+                }
+            );
+
+    } else {
+
+        grupoPago.style.display = 'none';
+
+        grupoMonto.style.display = 'none';
+
+        grupoMensaje.style.display = 'none';
+
+        montoEstadia.value = '';
+
+    }
 
 }
 
@@ -619,7 +917,7 @@ WHERE v.id = '$id'
 
 <?php
 
-} 
+}
 
 elseif ($_GET['form'] == 'cobrar') {
 
@@ -627,9 +925,12 @@ elseif ($_GET['form'] == 'cobrar') {
 
     $id = (int) $_GET['id'];
     $tarifa_id = (int) $_GET['tarifa_id'];
+    $categoria_id = (int) $_GET['categoria_id'];
 
-
-    $resultado = calcularTarifaVehiculo($mysqli, $id);
+    $resultado = calcularTarifaVehiculo(
+        $mysqli,
+        $id
+    );
 
     if (!$resultado) {
 
@@ -643,7 +944,6 @@ elseif ($_GET['form'] == 'cobrar') {
 
     $veh = $resultado['vehiculo'];
 
-   
     $total = $resultado['total'];
 
     $detalle = $resultado['detalle'];
@@ -676,18 +976,17 @@ elseif ($_GET['form'] == 'cobrar') {
     ");
 
     if ($rowTarifa = mysqli_fetch_assoc($queryTarifa)) {
-        $descripcionTarifa = $rowTarifa['descripcion'];
+
+        $descripcionTarifa =
+            $rowTarifa['descripcion'];
+
     }
 
 ?>
 
-
-
 <section class="content">
 
     <div class="box box-primary">
-
-    
 
         <form method="POST"
               action="modules/vehiculos/proces.php?act=cobrar"
@@ -717,6 +1016,8 @@ elseif ($_GET['form'] == 'cobrar') {
 
                 </div>
 
+                <!-- CATEGORÍA -->
+
                 <div class="form-group">
 
                     <label class="col-sm-2 control-label">
@@ -725,7 +1026,7 @@ elseif ($_GET['form'] == 'cobrar') {
 
                     <div class="col-sm-4">
 
-                        <select 
+                        <select
                             id="categoria_id"
                             name="categoria_id"
                             class="form-control"
@@ -738,23 +1039,27 @@ elseif ($_GET['form'] == 'cobrar') {
 
                             <?php
 
-                            $categoriaSeleccionada = (int)$veh['categoria_final_id'];
+                            $categoriaSeleccionada =
+                                (int)$veh['categoria_final_id'];
 
                             $cats = mysqli_query(
                                 $mysqli,
                                 "SELECT *
-                                FROM categorias
-                                WHERE activo = 1
-                                ORDER BY nombre ASC"
+                                 FROM categorias
+                                 WHERE activo = 1
+                                 ORDER BY nombre ASC"
                             );
 
                             while ($c = mysqli_fetch_assoc($cats)) {
 
-                                $selected = (
-                                    $categoriaSeleccionada == $c['id']
-                                )
-                                ? 'selected'
-                                : '';
+                                $selected =
+                                    (
+                                        $categoriaSeleccionada
+                                        ==
+                                        $c['id']
+                                    )
+                                    ? 'selected'
+                                    : '';
 
                                 echo "
                                 <option value='{$c['id']}' $selected>
@@ -767,33 +1072,37 @@ elseif ($_GET['form'] == 'cobrar') {
                         </select>
 
                         <input type="hidden"
-                        name="categoria_hidden"
-                        id="categoria_hidden"
-                        value="<?= $veh['categoria_final_id'] ?>"
-                        >
+                               name="categoria_hidden"
+                               value="<?= $veh['categoria_final_id'] ?>">
 
                     </div>
 
                 </div>
 
-                <div class="form-group">
+                <!-- TARIFA -->
+
+                <!-- <div class="form-group">
 
                     <label class="col-sm-2 control-label">
-                        Tarifa
+                        Tarifa / Abono
                     </label>
 
                     <div class="col-sm-4">
 
                         <input type="text"
-							   class="form-control"
+                               class="form-control"
                                value="<?= $descripcionTarifa ?>"
                                readonly>
 
                     </div>
 
-                    <input type="hidden" name="tarifa_id_hidden" value="<?= $tarifa_id ?>">
+                    <input type="hidden"
+                           name="tarifa_id_hidden"
+                           value="<?= $tarifa_id ?>">
 
-                </div>
+                </div> -->
+
+                <!-- INGRESO -->
 
                 <div class="form-group">
 
@@ -812,6 +1121,8 @@ elseif ($_GET['form'] == 'cobrar') {
 
                 </div>
 
+                <!-- PERMANENCIA -->
+
                 <div class="form-group">
 
                     <label class="col-sm-2 control-label">
@@ -828,6 +1139,8 @@ elseif ($_GET['form'] == 'cobrar') {
                     </div>
 
                 </div>
+
+                <!-- MEDIO COBRO -->
 
                 <div class="form-group">
 
@@ -875,6 +1188,8 @@ elseif ($_GET['form'] == 'cobrar') {
 
                 </div>
 
+                <!-- TOTAL -->
+
                 <div class="form-group">
 
                     <label class="col-sm-2 control-label">
@@ -891,13 +1206,17 @@ elseif ($_GET['form'] == 'cobrar') {
                     </div>
 
                     <input type="hidden"
-                    id="total_hidden"
-                    name="total_hidden"
-                    value="<?= $total ?>">
+                           id="total_hidden"
+                           name="total_hidden"
+                           value="<?= $total ?>">
 
                 </div>
 
-                            <div class="box-footer">
+            </div>
+
+            <!-- BOTONES -->
+
+            <div class="box-footer">
 
                 <button type="submit"
                         class="btn btn-success">
@@ -916,7 +1235,11 @@ elseif ($_GET['form'] == 'cobrar') {
 
             </div>
 
+            <div class="box-body">
+
                 <hr>
+
+                <!-- MEJOR ALTERNATIVA -->
 
                 <h4>
                     Mejor alternativa encontrada
@@ -975,6 +1298,8 @@ elseif ($_GET['form'] == 'cobrar') {
 
                 <br>
 
+                <!-- ALTERNATIVAS ANALIZADAS -->
+
                 <h4>
                     Alternativas analizadas
                 </h4>
@@ -986,11 +1311,15 @@ elseif ($_GET['form'] == 'cobrar') {
 
                     <tr style="background:#eee;">
 
-                        <th>
+                        <th width="60%">
                             Alternativa
                         </th>
 
-                        <th>
+                        <th width="20%">
+                            Tarifa / Abono Base
+                        </th>
+
+                        <th width="20%">
                             Total
                         </th>
 
@@ -998,49 +1327,58 @@ elseif ($_GET['form'] == 'cobrar') {
 
                     <?php foreach ($alternativas as $a): ?>
 
-                    <?php
+                        <?php
 
-                    $bg =
-                        ($a['total'] == $total)
-                        ? '#dff0d8'
-                        : '#fff';
+                        $bg =
+                            ($a['total'] == $total)
+                            ? '#dff0d8'
+                            : '#fff';
 
-                    ?>
+                        ?>
 
-                    <tr style="background:<?= $bg ?>;">
+                        <tr style="background:<?= $bg ?>;">
 
-                        <td>
+                            <td>
 
-                            <?php foreach ($a['items'] as $i): ?>
+                                <?php foreach ($a['items'] as $i): ?>
 
-                                <?= $i['cantidad'] ?>
-                                x
-                                <?= htmlspecialchars($i['descripcion']) ?>
+                                    <?= $i['cantidad'] ?>
 
-                                ($<?= number_format($i['subtotal'],2) ?>)
+                                    x
 
-                                <br>
+                                    <?= htmlspecialchars($i['descripcion']) ?>
 
-                            <?php endforeach; ?>
+                                    ($<?= number_format($i['subtotal'],2) ?>)
 
-                        </td>
+                                    <br>
 
-                        <td>
+                                <?php endforeach; ?>
 
-                            <b>
-                                $<?= number_format($a['total'],2) ?>
-                            </b>
+                            </td>
 
-                        </td>
+                            <td>
 
-                    </tr>
+                                <?= htmlspecialchars(
+                                    $a['abono_base'] ?? '-'
+                                ) ?>
+
+                            </td>
+
+                            <td>
+
+                                <b>
+                                    $<?= number_format($a['total'],2) ?>
+                                </b>
+
+                            </td>
+
+                        </tr>
 
                     <?php endforeach; ?>
 
                 </table>
 
             </div>
-
 
         </form>
 

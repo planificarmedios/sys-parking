@@ -40,13 +40,54 @@
 
         <?php
         $query = mysqli_query($mysqli, "
-            SELECT v.*, t.descripcion 
-            FROM vehiculos v
-            INNER JOIN tarifas t ON t.id = v.tarifa_id
-            WHERE v.en_playa = 1
-            AND
-            v.fecha_egreso IS NULL
-            ORDER BY v.id DESC
+            SELECT
+
+    v.*,
+
+    c.id AS cliente_id_db,
+
+    c.fecha_fin,
+
+    c.activo AS cliente_activo,
+
+    COALESCE(
+        c.tarifa_id,
+        v.tarifa_id
+    ) AS tarifa_final_id,
+
+    COALESCE(
+        tc.descripcion,
+        tv.descripcion
+    ) AS tarifa_final,
+
+    COALESCE(
+        catc.nombre,
+        catv.nombre
+    ) AS categoria_final
+
+FROM vehiculos v
+
+LEFT JOIN clientes c
+    ON c.patente COLLATE utf8mb4_general_ci = v.patente COLLATE utf8mb4_general_ci
+   AND c.activo = 1
+   AND c.fecha_fin >= CURDATE()
+
+LEFT JOIN tarifas tc
+    ON tc.id = c.tarifa_id
+
+LEFT JOIN tarifas tv
+    ON tv.id = v.tarifa_id
+
+LEFT JOIN categorias catc
+    ON catc.id = c.categoria_id
+
+LEFT JOIN categorias catv
+    ON catv.id = v.categoria_id
+
+WHERE v.en_playa = 1
+AND v.fecha_egreso IS NULL
+
+ORDER BY v.id DESC;
         ");
 
         $no = 1;
@@ -61,7 +102,7 @@
             <td><?= $no++ ?></td>
             <td><center><?= strtoupper($data['patente']) ?></td>
             <td><center><?= $fecha . ' ' . $hora ?></td>
-            <td><center><?= $data['descripcion'] ?></td>
+            <td><center><?= $data['tarifa_final'] ?></td>
             <td class="text-center">
 
               <?php if ($_SESSION['permisos_acceso'] == 'Super Admin') { ?>
@@ -85,8 +126,11 @@
                  <i class="fa fa-print"></i>
               </a>
 
-              <a data-toggle="tooltip"  class="btn btn-success btn-sm" data-placement="top" title="Registrar salida" 
-                href="?module=form_vehiculos&form=cobrar&id=<?= $data['id'] ?>&tarifa_id=<?= $data['tarifa_id'] ?>">
+              <a data-toggle="tooltip"
+                class="btn btn-success btn-sm"
+                data-placement="top"
+                title="Registrar salida"
+                href="?module=form_vehiculos&form=cobrar&id=<?= $data['id'] ?>&tarifa_id=<?= $data['tarifa_id'] ?>&categoria_id=<?= $data['categoria_id'] ?>">
                 <i class="fa fa-arrow-right"></i>
               </a>
 

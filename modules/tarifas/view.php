@@ -95,12 +95,6 @@
                           <i style='color:#fff' class='glyphicon glyphicon-edit'></i>
                         </a>
 
-                        <a data-toggle='tooltip' title='Eliminar'
-                           class='btn btn-danger btn-sm'
-                           href='modules/tarifas/proces.php?act=delete&id=$data[id]'
-                           onclick=\"return confirm('¿Eliminar la tarifa $data[descripcion]?');\">
-                          <i style='color:#fff' class='glyphicon glyphicon-trash'></i>
-                        </a>
                       </td>
                     </tr>";
               $no++;

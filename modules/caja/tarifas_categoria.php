@@ -18,6 +18,10 @@ FROM tarifas
 
 WHERE activo = 1
 AND categoria_id = $categoria_id
+
+";
+
+$sql .= "
 ORDER BY monto ASC
 ";
 

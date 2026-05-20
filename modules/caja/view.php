@@ -85,6 +85,27 @@ $totalCaja = $totalData['total'] ?? 0;
 
     <div class="col-md-12">
 
+    <?php  
+    if (empty($_GET['alert'])) {
+          echo "";
+    } 
+    elseif ($_GET['alert'] == '1') {
+      echo "<div class='alert alert-success alert-dismissable'>
+              <button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>
+              <h4>  <i class='icon fa fa-check-circle'></i> Exito!</h4>
+              Registro ingresado correcamente.
+            </div>";
+     }
+
+     elseif ($_GET['alert'] == '2' ) {
+      echo "<div class='alert alert-danger alert-dismissable'>
+              <button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>
+              <h4>  <i class='icon fa fa-times-circle'></i> Error!</h4>
+              Error! Intentar nuevamente.
+            </div>";
+    }
+    ?>
+
       <div class="box box-primary">
 
         <!-- =========================
@@ -198,6 +219,14 @@ $totalCaja = $totalData['total'] ?? 0;
 
             </a>
 
+            <a class="btn btn-info btn-social pull-right"
+              href="?module=form_caja&form=manual">
+
+                <i class="fa fa-plus"></i>
+                Movimiento manual
+
+            </a>
+
           </form>
 
         </div>
@@ -240,11 +269,9 @@ $totalCaja = $totalData['total'] ?? 0;
 
                 <th>Fecha</th>
 
-                <th>Patente</th>
+                <th>Concepto </th>
 
-                <th>Categoría</th>
-
-                <th>Tarifa</th>
+                <th>Detalle</th>
 
                 <th>Medio</th>
 
@@ -268,15 +295,23 @@ $totalCaja = $totalData['total'] ?? 0;
                   </td>
 
                   <td>
-                    <?= strtoupper($data['patente']) ?>
+                    <?php
+                        if ( !empty($data['categoria']) || !empty($data['patente'])) {
+                          echo $data['categoria'].' - '.strtoupper($data['patente']);
+                        } else {
+                            echo $data['concepto'];
+                        }
+                    ?>
                   </td>
 
                   <td>
-                    <?= $data['categoria'] ?>
-                  </td>
-
-                  <td>
-                    <?= $data['tarifa'] ?>
+                    <?php
+                        if ( !empty($data['tarifa'])) {
+                          echo $data['tarifa'];
+                        } else {
+                            echo $data['detalle'];
+                        }
+                    ?>
                   </td>
 
                   <td>
@@ -287,7 +322,19 @@ $totalCaja = $totalData['total'] ?? 0;
 
                     <strong>
 
-                      $<?= number_format($data['monto'], 2) ?>
+                      <?php if ($data['monto'] < 0): ?>
+
+                            <span style="color:red;">
+                                $ <?= number_format($data['monto'], 2, ',', '.') ?>
+                            </span>
+
+                        <?php else: ?>
+
+                            <span style="color:green;">
+                                $<?= number_format($data['monto'], 2, ',', '.') ?>
+                            </span>
+
+                        <?php endif; ?>
 
                     </strong>
 

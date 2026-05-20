@@ -19,6 +19,26 @@ if (isset($_GET['act']) && $_GET['act'] === 'insert') {
     $direccion    = mysqli_real_escape_string($mysqli, trim($_POST['direccion']));
     $localidad    = mysqli_real_escape_string($mysqli, trim($_POST['localidad']));
 
+    $check = mysqli_query($mysqli, "
+
+        SELECT id
+        FROM clientes
+        WHERE patente = '$patente'
+        AND activo = 1
+        AND fecha_fin >= CURDATE()
+
+        LIMIT 1
+
+    ");
+
+    if (mysqli_num_rows($check) > 0) {
+
+        header("Location: ../../main.php?module=form_clients&form=add&alert=abono_existente");
+
+        exit;
+
+    }
+
     $categoria_id = (int) $_POST['categoria_id'];
     $tarifa_id    = (int) $_POST['tarifa_id'];
     $fecha_inicio = $_POST['fecha_inicio'];
@@ -136,4 +156,109 @@ elseif (isset($_GET['act']) && $_GET['act'] === 'delete') {
         exit;
     }
 }
-?>
+
+elseif ($_GET['act'] == 'renovar_masivo') {
+
+    if (empty($_POST['clientes'])) {
+
+        header("Location: ../../main.php?module=clients");
+
+        exit;
+    }
+
+    $clientes = $_POST['clientes'];
+
+    $hoy = date('Y-m-d');
+
+    foreach ($clientes as $id_cliente) {
+
+        $id_cliente = (int) $id_cliente;
+
+        /* =========================================
+           CLIENTE
+        ========================================= */
+
+        $qCliente = mysqli_query($mysqli, "
+
+            SELECT
+                c.*,
+                t.valor,
+                t.unidad
+            FROM clientes c
+
+            INNER JOIN tarifas t
+                ON t.id = c.tarifa_id
+
+            WHERE c.id = $id_cliente
+
+            LIMIT 1
+
+        ");
+
+        $cliente = mysqli_fetch_assoc($qCliente);
+
+        if (!$cliente) {
+            continue;
+        }
+
+        /* =========================================
+           SOLO VENCIDOS
+        ========================================= */
+
+        if ($cliente['fecha_fin'] >= $hoy) {
+
+            continue;
+        }
+
+        /* =========================================
+           SOLO TARIFAS EN DÍAS
+        ========================================= */
+
+        if ($cliente['unidad'] != 'dias') {
+
+            continue;
+        }
+
+        /* =========================================
+           CALCULAR NUEVA VIGENCIA
+        ========================================= */
+
+        $dias = (int) $cliente['valor'];
+
+        $inicio = date(
+            'Y-m-d',
+            strtotime(
+                $cliente['fecha_fin'].' +1 day'
+            )
+        );
+
+        $fin = date(
+            'Y-m-d',
+            strtotime(
+                $inicio.' +'.($dias - 1).' days'
+            )
+        );
+
+        /* =========================================
+           UPDATE
+        ========================================= */
+
+        mysqli_query($mysqli, "
+
+            UPDATE clientes
+
+            SET
+
+                fecha_inicio = '$inicio',
+
+                fecha_fin = '$fin',
+
+                activo = 1
+
+            WHERE id = $id_cliente
+
+        ");
+    }
+
+    header("Location: ../../main.php?module=clients");
+}

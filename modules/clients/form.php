@@ -8,111 +8,141 @@ if ($_GET['form']=='add') { ?>
   </h1>
 </section>
 
-<section class="content">
-  <div class="row">
-    <div class="col-md-12">
+        <section class="content">
+          <div class="row">
+            <div class="col-md-12">
 
-      <div class="box box-primary">
-        <form role="form" class="form-horizontal" method="POST" action="modules/clients/proces.php?act=insert">
+                     <?php if (isset($_GET['alert']) && $_GET['alert'] == 'abono_existente') : ?>
 
-          <div class="box-body">
+                      <div class='alert alert-danger alert-dismissable'>
+                        <button type='button' class='close' data-dismiss='alert' aria-hidden='true'>&times;</button>
+                        <h4>  <i class='icon fa fa-times-circle'></i> Error!</h4>
+                          La patente ya posee un abono vigente.
 
-            <!-- Nombre -->
-            <div class="form-group">
-              <label class="col-sm-2 control-label">Nombre</label>
-              <div class="col-sm-5">
-                <input type="text" class="form-control" name="denominacion" required>
-              </div>
-            </div>
+                      </div>
+                      <script>
 
-            <!-- Patente -->
-            <div class="form-group">
-              <label class="col-sm-2 control-label">Patente</label>
-              <div class="col-sm-5">
-                <input 
-                  type="text" 
-                  class="form-control" 
-                  name="patente" 
-                  required
-                  style="text-transform:uppercase"
-                  oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
-              </div>
-            </div>
+                      document.addEventListener('DOMContentLoaded', function () {
 
-            <div class="form-group">
-              <label class="col-sm-2 control-label">Categoría</label>
-              <div class="col-sm-5">
-                <select name="categoria_id" id="categoria_id" class="form-control" required>
-                  <option value="">Seleccionar</option>
-                  <?php
-                  $cats = mysqli_query($mysqli, "SELECT * FROM categorias WHERE activo=1");
-                  while($c = mysqli_fetch_assoc($cats)){
-                    echo "<option value='{$c['id']}'>{$c['nombre']}</option>";
-                  }
-                  ?>
-                </select>
-              </div>
-            </div>
+                          const patente = document.getElementById('patente');
 
-            <!-- Fecha inicio -->
-            <div class="form-group">
-              <label class="col-sm-2 control-label">Fecha inicio</label>
-              <div class="col-sm-5">
-                <input 
-                  type="date"
-                  class="form-control"
-                  name="fecha_inicio"
-                  value="<?= date('Y-m-d') ?>"
-                  required>
-              </div>
-            </div>
+                          if (patente) {
 
-            <!-- Tarifa -->
-            <div class="form-group">
-              <label class="col-sm-2 control-label">Tarifa</label>
-              <div class="col-sm-5">
-                <select name="tarifa_id" id="tarifa_id" class="form-control" required>
-                  <option value="">Seleccione categoría primero</option>
-                </select>
-              </div>
-            </div>
+                              patente.value = '';
 
-            <!-- Dirección -->
-            <div class="form-group">
-              <label class="col-sm-2 control-label">Dirección</label>
-              <div class="col-sm-5">
-                <input type="text" class="form-control" name="direccion" required>
-              </div>
-            </div>
+                              patente.focus();
 
-            <!-- Celular -->
-            <div class="form-group">
-              <label class="col-sm-2 control-label">Celular</label>
-              <div class="col-sm-5">
-                <input type="text" class="form-control" name="telefonos" required>
-              </div>
-            </div>
+                          }
 
-            <!-- Localidad -->
-            <div class="form-group">
-              <label class="col-sm-2 control-label">Localidad</label>
-              <div class="col-sm-5">
-                <input type="text" class="form-control" name="localidad" required>
-              </div>
-            </div>
+                      });
 
-          </div>
+                      </script>
 
-          <div class="box-footer">
-            <div class="form-group">
-              <div class="col-sm-offset-2 col-sm-10">
-                <input type="submit" class="btn btn-primary" value="Guardar">
-                <a href="?module=clients" class="btn btn-default">Cancelar</a>
-              </div>
-            </div>
-          </div>
+                      <?php endif; ?>
 
-        </form>
+              <div class="box box-primary">
+
+              <form role="form" class="form-horizontal" method="POST" action="modules/clients/proces.php?act=insert">
+
+                <div class="box-body">
+
+                  <!-- Nombre -->
+                  <div class="form-group">
+                    <label class="col-sm-2 control-label">Nombre</label>
+                    <div class="col-sm-5">
+                      <input type="text" class="form-control" name="denominacion" required>
+                    </div>
+                  </div>
+
+                  <!-- Patente -->
+                  <div class="form-group">
+                    <label class="col-sm-2 control-label">Patente</label>
+                    <div class="col-sm-5">
+                      <input 
+                        type="text" 
+                        id="patente"
+                        class="form-control" 
+                        name="patente" 
+                        required
+                        style="text-transform:uppercase"
+                        oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')">
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="col-sm-2 control-label">Categoría</label>
+                    <div class="col-sm-5">
+                      <select name="categoria_id" id="categoria_id" class="form-control" required>
+                        <option value="">Seleccionar</option>
+                        <?php
+                        $cats = mysqli_query($mysqli, "SELECT * FROM categorias WHERE activo=1");
+                        while($c = mysqli_fetch_assoc($cats)){
+                          echo "<option value='{$c['id']}'>{$c['nombre']}</option>";
+                        }
+                        ?>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Fecha inicio -->
+                  <div class="form-group">
+                    <label class="col-sm-2 control-label">Fecha inicio</label>
+                    <div class="col-sm-5">
+                      <input 
+                        type="date"
+                        class="form-control"
+                        name="fecha_inicio"
+                        value="<?= date('Y-m-d') ?>"
+                        required>
+                    </div>
+                  </div>
+
+                  <!-- Tarifa -->
+                  <div class="form-group">
+                    <label class="col-sm-2 control-label">Tarifa</label>
+                    <div class="col-sm-5">
+                      <select name="tarifa_id" id="tarifa_id" class="form-control" required>
+                        <option value="">Seleccione categoría primero</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Dirección -->
+                  <div class="form-group">
+                    <label class="col-sm-2 control-label">Dirección</label>
+                    <div class="col-sm-5">
+                      <input type="text" class="form-control" name="direccion" required>
+                    </div>
+                  </div>
+
+                  <!-- Celular -->
+                  <div class="form-group">
+                    <label class="col-sm-2 control-label">Celular</label>
+                    <div class="col-sm-5">
+                      <input type="text" class="form-control" name="telefonos" required>
+                    </div>
+                  </div>
+
+                  <!-- Localidad -->
+                  <div class="form-group">
+                    <label class="col-sm-2 control-label">Localidad</label>
+                    <div class="col-sm-5">
+                      <input type="text" class="form-control" name="localidad" required>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div class="box-footer">
+                  <div class="form-group">
+                    <div class="col-sm-offset-2 col-sm-10">
+                      <input type="submit" class="btn btn-primary" value="Guardar">
+                      <a href="?module=clients" class="btn btn-default">Cancelar</a>
+                    </div>
+                  </div>
+                </div>
+
+              </form>
       </div>
 
     </div>
@@ -126,6 +156,7 @@ elseif ($_GET['form']=='edit') {
 
   if (isset($_GET['id'])) {
     $id_cliente = $_GET['id'];
+    $categoria_id = $_GET['categoria_id'];
     $query = mysqli_query($mysqli, "SELECT * FROM clientes WHERE id='$id_cliente'");
     $data  = mysqli_fetch_assoc($query);
   }
@@ -160,6 +191,8 @@ elseif ($_GET['form']=='edit') {
                        value="<?= strtoupper($data['patente']); ?>">
               </div>
             </div>
+
+            <input hidden name="categoria_id" value="<?php echo $categoria_id; ?>">
 
             <!-- Tarifa -->
             <div class="form-group">
@@ -272,5 +305,73 @@ elseif ($_GET['form']=='edit') {
     });
 });
 
+document.addEventListener('DOMContentLoaded', function () {
+
+    const patenteInput =
+        document.getElementById('patente');
+
+    if (!patenteInput) return;
+
+    patenteInput.addEventListener('blur', function () {
+
+        const patente =
+            this.value.trim().toUpperCase();
+
+        if (patente.length < 5) {
+            return;
+        }
+
+        fetch(
+            'modules/clients/verificar_patente.php',
+            {
+                method: 'POST',
+
+                headers: {
+                    'Content-Type':
+                        'application/x-www-form-urlencoded'
+                },
+
+                body:
+                    'patente='
+                    +
+                    encodeURIComponent(patente)
+            }
+        )
+
+        .then(res => res.json())
+
+        .then(data => {
+
+            if (data.existe) {
+
+                Swal.fire({
+
+                    icon: 'warning',
+
+                    title: 'Abono existente',
+
+                    text:
+                        'La patente ya posee un abono vigente.',
+
+                    confirmButtonText: 'Aceptar'
+
+                });
+
+                patenteInput.value = '';
+
+                patenteInput.focus();
+            }
+
+        })
+
+        .catch(err => {
+
+            console.error(err);
+
+        });
+
+    });
+
+});
 
 </script>

@@ -8,39 +8,37 @@ function calcularTarifaVehiculo($mysqli, $vehiculo_id)
 
     $qVeh = mysqli_query($mysqli, "
 
-     SELECT
-        v.*,
+        SELECT
+            v.*,
 
-        COALESCE(
-            cli.categoria_id,
-            v.categoria_id
-        ) AS categoria_final_id,
+            COALESCE(
+                cli.categoria_id,
+                v.categoria_id
+            ) AS categoria_final_id,
 
-        cat.nombre AS categoria,
+            cat.nombre AS categoria,
 
-        t.descripcion AS tarifa
+            t.descripcion AS tarifa
 
-    FROM vehiculos v
+        FROM vehiculos v
 
-    LEFT JOIN clientes cli
-        ON cli.patente COLLATE utf8mb4_unicode_ci =
-           v.patente COLLATE utf8mb4_unicode_ci
-       AND cli.activo = 1
+        LEFT JOIN clientes cli
+            ON cli.patente COLLATE utf8mb4_unicode_ci =
+               v.patente COLLATE utf8mb4_unicode_ci
+           AND cli.activo = 1
 
-    LEFT JOIN categorias cat
-        ON cat.id = COALESCE(
-            cli.categoria_id,
-            v.categoria_id
-        )
+        LEFT JOIN categorias cat
+            ON cat.id = COALESCE(
+                cli.categoria_id,
+                v.categoria_id
+            )
 
-    LEFT JOIN tarifas t
-        ON t.id = v.tarifa_id
+        LEFT JOIN tarifas t
+            ON t.id = v.tarifa_id
 
-    WHERE v.id = $vehiculo_id
+        WHERE v.id = $vehiculo_id
 
-    LIMIT 1
-   
-
+        LIMIT 1
     ");
 
     $veh = mysqli_fetch_assoc($qVeh);
@@ -114,7 +112,11 @@ function calcularTarifaVehiculo($mysqli, $vehiculo_id)
             'alternativas' => [
                 [
                     'nombre' => 'Abono vigente',
+
+                    'abono_base' => $veh['tarifa'],
+
                     'total' => 0,
+
                     'items' => [
                         [
                             'descripcion' => 'Abono vigente',
@@ -152,8 +154,12 @@ function calcularTarifaVehiculo($mysqli, $vehiculo_id)
 
     $escenarios = [];
 
+    $hashes = [];
+
+    $totalesExistentes = [];
+
     /* =========================================
-       TARIFAS FIJAS DIRECTAS
+       TARIFAS DIRECTAS
     ========================================= */
 
     foreach ($tarifas as $t) {
@@ -164,6 +170,10 @@ function calcularTarifaVehiculo($mysqli, $vehiculo_id)
 
         $monto = (float) $t['monto'];
 
+        $subtotal = 0;
+
+        $cantidad = 1;
+
         if ($unidad == 'minutos') {
 
             $cantidad = ceil(
@@ -172,21 +182,6 @@ function calcularTarifaVehiculo($mysqli, $vehiculo_id)
 
             $subtotal = $cantidad * $monto;
 
-            $escenarios[] = [
-
-                'nombre' => $t['descripcion'],
-
-                'total' => $subtotal,
-
-                'items' => [
-                    [
-                        'descripcion' => $t['descripcion'],
-                        'cantidad' => $cantidad,
-                        'precio' => $monto,
-                        'subtotal' => $subtotal
-                    ]
-                ]
-            ];
         }
 
         elseif ($unidad == 'horas') {
@@ -199,214 +194,298 @@ function calcularTarifaVehiculo($mysqli, $vehiculo_id)
 
             $subtotal = $cantidad * $monto;
 
-            $escenarios[] = [
-
-                'nombre' => $t['descripcion'],
-
-                'total' => $subtotal,
-
-                'items' => [
-                    [
-                        'descripcion' => $t['descripcion'],
-                        'cantidad' => $cantidad,
-                        'precio' => $monto,
-                        'subtotal' => $subtotal
-                    ]
-                ]
-            ];
         }
 
         elseif ($unidad == 'fijo') {
 
-            $escenarios[] = [
+            $subtotal = $monto;
 
-                'nombre' => $t['descripcion'],
-
-                'total' => $monto,
-
-                'items' => [
-                    [
-                        'descripcion' => $t['descripcion'],
-                        'cantidad' => 1,
-                        'precio' => $monto,
-                        'subtotal' => $monto
-                    ]
-                ]
-            ];
         }
+
+        else {
+
+            continue;
+
+        }
+
+        /* EVITAR TOTALES REPETIDOS */
+
+        if (isset($totalesExistentes[$subtotal])) {
+            continue;
+        }
+
+        $totalesExistentes[$subtotal] = true;
+
+        $escenarios[] = [
+
+            'nombre' => $t['descripcion'],
+
+            'abono_base' => $veh['tarifa'],
+
+            'total' => $subtotal,
+
+            'items' => [
+                [
+                    'descripcion' => $t['descripcion'],
+                    'cantidad' => $cantidad,
+                    'precio' => $monto,
+                    'subtotal' => $subtotal
+                ]
+            ]
+        ];
     }
 
     /* =========================================
-       COMBINACIONES FRACCIONABLES
-    ========================================= */
+   MOTOR INTELIGENTE
+   TARIFA BASE + FRACCIÓN
+========================================= */
 
-    $fraccionables = [];
+$tarifasBase = [];
+$tarifasFraccion = [];
+$topeDiario = null;
 
-    foreach ($tarifas as $t) {
+/* =========================================
+   SEPARAR TARIFAS
+========================================= */
 
-        if (
-            $t['es_tarifa_fraccionable'] == 1
-            &&
-            (
-                $t['unidad'] == 'minutos'
-                ||
-                $t['unidad'] == 'horas'
-            )
-        ) {
+foreach ($tarifas as $t) {
 
-            $fraccionables[] = $t;
+    /* TOPE */
 
-        }
+    if ((int)$t['es_tope_diario'] === 1) {
+
+        $topeDiario = $t;
+
     }
 
-    foreach ($fraccionables as $a) {
+    /* FRACCIONABLES */
 
-        foreach ($fraccionables as $b) {
+    if (
+        (int)$t['es_tarifa_fraccionable'] === 1
+        &&
+        (
+            $t['unidad'] == 'minutos'
+            ||
+            $t['unidad'] == 'horas'
+        )
+    ) {
 
-            $bloqueA =
-                ($a['unidad'] == 'horas')
-                ? ((int)$a['valor'] * 60)
-                : (int)$a['valor'];
+        $tarifasFraccion[] = $t;
 
-            $bloqueB =
-                ($b['unidad'] == 'horas')
-                ? ((int)$b['valor'] * 60)
-                : (int)$b['valor'];
+    }
 
-            for ($cantA = 0; $cantA <= 6; $cantA++) {
+    /* BASE */
 
-                for ($cantB = 0; $cantB <= 6; $cantB++) {
+    else {
 
-                    /* =========================================
-                    EVITAR ESCENARIO VACÍO
-                    ========================================= */
+        $tarifasBase[] = $t;
 
-                    if (
-                        $cantA == 0
-                        &&
-                        $cantB == 0
-                    ) {
-                        continue;
-                    }
+    }
+}
 
-                    /* =========================================
-                    EVITAR DUPLICADOS
-                    EJ:
-                    15+30 y 30+15
-                    ========================================= */
+/* =========================================
+   ANALIZAR TARIFAS BASE
+========================================= */
 
-                    if (
-                        $a['id'] == $b['id']
-                    ) {
-                        continue;
-                    }
+foreach ($tarifasBase as $base) {
 
-                    /* =========================================
-                    MINUTOS CUBIERTOS
-                    ========================================= */
+    $unidad = $base['unidad'];
 
-                    $cubierto =
-                        ($cantA * $bloqueA)
-                        +
-                        ($cantB * $bloqueB);
+    $valor = (int)$base['valor'];
 
-                    if (
-                        $cubierto < $minutos_totales
-                    ) {
-                        continue;
-                    }
+    $monto = (float)$base['monto'];
 
-                    /* =========================================
-                    GENERAR ITEMS
-                    ========================================= */
+    $bloqueMinutos = 0;
 
-                    $subtotal = 0;
+    if ($unidad == 'horas') {
 
-                    $items = [];
+        $bloqueMinutos = $valor * 60;
 
-                    if ($cantA > 0) {
+    }
 
-                        $subA = (
-                            $cantA * $a['monto']
-                        );
+    elseif ($unidad == 'minutos') {
 
-                        $subtotal += $subA;
+        $bloqueMinutos = $valor;
 
-                        $items[] = [
+    }
 
-                            'descripcion' => $a['descripcion'],
+    else {
 
-                            'cantidad' => $cantA,
+        continue;
+    }
 
-                            'precio' => $a['monto'],
+    /* =========================================
+       CANTIDAD ENTERA
+    ========================================= */
 
-                            'subtotal' => $subA
+    $cantidadBase = floor(
+        $minutos_totales / $bloqueMinutos
+    );
 
-                        ];
-                    }
+    $remanente =
+        $minutos_totales
+        -
+        ($cantidadBase * $bloqueMinutos);
 
-                    if ($cantB > 0) {
+    $subtotal =
+        $cantidadBase * $monto;
 
-                        $subB = (
-                            $cantB * $b['monto']
-                        );
+    $items = [];
 
-                        $subtotal += $subB;
+    if ($cantidadBase > 0) {
 
-                        $items[] = [
+        $items[] = [
 
-                            'descripcion' => $b['descripcion'],
+            'descripcion' => $base['descripcion'],
 
-                            'cantidad' => $cantB,
+            'cantidad' => $cantidadBase,
 
-                            'precio' => $b['monto'],
+            'precio' => $monto,
 
-                            'subtotal' => $subB
+            'subtotal' => $subtotal
+        ];
+    }
 
-                        ];
-                    }
+    /* =========================================
+       BUSCAR MEJOR FRACCIÓN
+    ========================================= */
 
-                    /* =========================================
-                    HASH ÚNICO
-                    ========================================= */
+    if ($remanente > 0) {
 
-                    $hash = md5(
-                        json_encode($items)
-                    );
+        $mejorFraccion = null;
 
-                    if (
-                        isset($hashes[$hash])
-                    ) {
-                        continue;
-                    }
+        foreach ($tarifasFraccion as $frac) {
 
-                    $hashes[$hash] = true;
+            $bloqueFrac =
+                ($frac['unidad'] == 'horas')
+                ? ((int)$frac['valor'] * 60)
+                : (int)$frac['valor'];
 
-                    /* =========================================
-                    GUARDAR ESCENARIO
-                    ========================================= */
+            $cantFrac = ceil(
+                $remanente / $bloqueFrac
+            );
 
-                    $escenarios[] = [
+            $subFrac =
+                $cantFrac * $frac['monto'];
 
-                        'nombre' =>
+            if (
+                !$mejorFraccion
+                ||
+                $subFrac < $mejorFraccion['subtotal']
+            ) {
 
-                            $a['descripcion']
-                            .' + '.
-                            $b['descripcion'],
+                $mejorFraccion = [
 
-                        'total' => $subtotal,
+                    'descripcion' =>
+                        $frac['descripcion'],
 
-                        'items' => $items
+                    'cantidad' => $cantFrac,
 
-                    ];
-                }
+                    'precio' => $frac['monto'],
+
+                    'subtotal' => $subFrac
+                ];
             }
         }
+
+        if ($mejorFraccion) {
+
+            $subtotal +=
+                $mejorFraccion['subtotal'];
+
+            $items[] =
+                $mejorFraccion;
+        }
     }
 
     /* =========================================
-       ORDENAR MÁS BARATO
+       TOPE DIARIO
     ========================================= */
+
+    if ($topeDiario) {
+
+        $subtotal = min(
+            $subtotal,
+            (float)$topeDiario['monto']
+        );
+    }
+
+    /* =========================================
+       EVITAR DUPLICADOS
+    ========================================= */
+
+    if (isset($totalesExistentes[$subtotal])) {
+        continue;
+    }
+
+    $totalesExistentes[$subtotal] = true;
+
+    /* =========================================
+       GUARDAR ESCENARIO
+    ========================================= */
+
+    $escenarios[] = [
+
+        'nombre' => $base['descripcion'],
+
+        'abono_base' => $veh['tarifa'],
+
+        'total' => $subtotal,
+
+        'items' => $items
+
+    ];
+}
+
+/* =========================================
+   SI SOLO HAY FRACCIONES
+========================================= */
+
+if (empty($escenarios)) {
+
+    foreach ($tarifasFraccion as $frac) {
+
+        $bloque =
+            ($frac['unidad'] == 'horas')
+            ? ((int)$frac['valor'] * 60)
+            : (int)$frac['valor'];
+
+        $cantidad = ceil(
+            $minutos_totales / $bloque
+        );
+
+        $subtotal =
+            $cantidad * $frac['monto'];
+
+        if (isset($totalesExistentes[$subtotal])) {
+            continue;
+        }
+
+        $totalesExistentes[$subtotal] = true;
+
+        $escenarios[] = [
+
+            'nombre' => $frac['descripcion'],
+
+            'abono_base' => $veh['tarifa'],
+
+            'total' => $subtotal,
+
+            'items' => [
+                [
+                    'descripcion' =>
+                        $frac['descripcion'],
+
+                    'cantidad' => $cantidad,
+
+                    'precio' => $frac['monto'],
+
+                    'subtotal' => $subtotal
+                ]
+            ]
+        ];
+    }
+}
 
     usort($escenarios, function($a, $b){
 
