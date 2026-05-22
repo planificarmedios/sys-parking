@@ -7,3 +7,4 @@ DEFAULT 0,
 ADD fecha_pago DATETIME
 NULL DEFAULT NULL;
 
+/***********************/

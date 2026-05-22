@@ -87,6 +87,13 @@ if ($_GET['form']=='add') { ?>
             </div>
 
             <div class="form-group">
+              <label class="col-sm-2 control-label">Tarifa estadía</label>
+              <div class="col-sm-5">
+                <input type="checkbox" name="es_tope_diario" value="1">
+              </div>
+            </div>
+
+            <div class="form-group">
               <label class="col-sm-2 control-label">Tarifa por defecto</label>
               <div class="col-sm-5">
                 <div class="radio">
@@ -232,6 +239,14 @@ elseif ($_GET['form']=='edit') {
               <div class="col-sm-5">
                 <input type="checkbox" name="es_tarifa_fraccionable" value="1"
                   <?php if($data['es_tarifa_fraccionable']==1) echo 'checked'; ?>>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="col-sm-2 control-label">Es tarifa por estadía</label>
+              <div class="col-sm-5">
+                <input type="checkbox" name="es_tope_diario" value="1"
+                  <?php if($data['es_tope_diario']==1) echo 'checked'; ?>>
               </div>
             </div>
 

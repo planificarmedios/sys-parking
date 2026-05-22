@@ -35,6 +35,45 @@ if ($_GET['act'] == 'insert') {
 
     $modo_ticket = $_POST['modo_ticket'] ?? 'preview';
 
+    $medio_cobro = mysqli_real_escape_string(
+        $mysqli,
+        $_POST['medio_cobro'] ?? ''
+    );
+
+    /* =========================================
+       OBTENER DATOS TARIFA
+    ========================================= */
+
+    $queryTarifa = mysqli_query($mysqli, "
+
+        SELECT
+            descripcion,
+            monto,
+            es_tope_diario
+
+        FROM tarifas
+
+        WHERE id = '$tarifa_id'
+
+        LIMIT 1
+
+    ");
+
+    $tarifa = mysqli_fetch_assoc($queryTarifa);
+
+    $descripcionTarifa =
+        $tarifa['descripcion'] ?? '';
+
+    $montoTarifa =
+        (float)($tarifa['monto'] ?? 0);
+
+    $esEstadia =
+        (int)($tarifa['es_tope_diario'] ?? 0);
+
+    /* =========================================
+       INSERT VEHICULO
+    ========================================= */
+
     mysqli_query($mysqli, "
 
         INSERT INTO vehiculos
@@ -44,7 +83,8 @@ if ($_GET['act'] == 'insert') {
             hora_ingreso,
             tarifa_id,
             categoria_id,
-            en_playa
+            en_playa,
+            pagado
         )
 
         VALUES
@@ -54,20 +94,77 @@ if ($_GET['act'] == 'insert') {
             CURTIME(),
             '$tarifa_id',
             '$categoria_id',
-            1
+            1,
+            ".($esEstadia ? 1 : 0)."
         )
 
     ") or die(mysqli_error($mysqli));
 
     $vehiculo_id = mysqli_insert_id($mysqli);
 
+    /* =========================================
+       SI ES ESTADIA:
+       GENERAR COBRO EN CAJA
+    ========================================= */
+
+    if ($esEstadia) {
+
+        $concepto =
+            'Ingreso estadía';
+
+        $detalle =
+            'Cobro automático al ingreso';
+
+        mysqli_query($mysqli, "
+
+            INSERT INTO caja (
+
+                vehiculo_id,
+                cliente_id,
+                patente,
+                categoria_id,
+                tarifa_id,
+                concepto,
+                medio_cobro,
+                monto,
+                fecha_movimiento,
+                detalle
+
+            )
+
+            VALUES (
+
+                '$vehiculo_id',
+                NULL,
+                '$patente',
+                '$categoria_id',
+                '$tarifa_id',
+                '$concepto',
+                '$medio_cobro',
+                '$montoTarifa',
+                NOW(),
+                '$detalle'
+
+            )
+
+        ") or die(mysqli_error($mysqli));
+    }
+
+    /* =========================================
+       REDIRECCION TICKET
+    ========================================= */
+
     if ($modo_ticket == 'preview') {
 
-        header("Location: ../../modules/vehiculos/ticket_ingreso.php?id=".$vehiculo_id);
+        header(
+            "Location: ../../modules/vehiculos/ticket_ingreso.php?id=".$vehiculo_id
+        );
 
     } else {
 
-        header("Location:../../modules/vehiculos/ticket_ingreso.php?id=".$vehiculo_id."&auto=1");
+        header(
+            "Location: ../../modules/vehiculos/ticket_ingreso.php?id=".$vehiculo_id."&auto=1"
+        );
     }
 
     exit;

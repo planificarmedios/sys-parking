@@ -18,6 +18,7 @@ else {
 
     $descripcion = mysqli_real_escape_string($mysqli, $_POST['descripcion']);
     $unidad      = mysqli_real_escape_string($mysqli, $_POST['unidad']);
+    $es_tope_diario = isset($_POST['es_tope_diario']) ? 1 : 0;
     $valor       = (int) $_POST['valor'];
     $categoria_id = !empty($_POST['categoria_id']) 
                 ? (int) $_POST['categoria_id'] 
@@ -36,6 +37,12 @@ else {
     if ($es_default == 1) {
       mysqli_query($mysqli, "UPDATE tarifas SET es_default = 0 where categoria_id = $categoria_id");
     }
+
+    if ($es_tope_diario == 1){ 
+        mysqli_query($mysqli, "UPDATE tarifas SET es_tope_diario = 0 where categoria_id = $categoria_id");
+    }
+
+    // 👉 inserto
 
     $query = mysqli_query($mysqli, "
         INSERT INTO tarifas 
@@ -61,6 +68,7 @@ else {
         $descripcion = mysqli_real_escape_string($mysqli, $_POST['descripcion']);
         $unidad      = mysqli_real_escape_string($mysqli, $_POST['unidad']);
         $valor       = (int) $_POST['valor'];
+        $es_tope_diario = isset($_POST['es_tope_diario']) ? 1 : 0;
         $monto       = (float) $_POST['monto'];
         $fraccionable = isset($_POST['es_tarifa_fraccionable']) ? 1 : 0;
         $activo      = ($_POST['activo'] == 1) ? 1 : 0;
@@ -75,11 +83,17 @@ else {
         ");
         }
 
+        if ($es_tope_diario == 1){ 
+            mysqli_query($mysqli, "UPDATE tarifas SET es_tope_diario = 0 
+            WHERE id != $id_tarifa 
+            AND categoria_id = $categoria_id");
+        }
 
         $query = mysqli_query($mysqli, "
             UPDATE tarifas SET
                 descripcion = '$descripcion',
                 categoria_id = $categoria_id,
+                es_tope_diario = '$es_tope_diario',
                 unidad = '$unidad',
                 valor = '$valor',
                 monto = '$monto',

@@ -375,6 +375,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         tarifa.addEventListener('change', function () {
 
+            document.getElementById(
+                'tarifa_hidden'
+            ).value = this.value;
+
             actualizarVistaEstadia();
 
         });
@@ -523,7 +527,8 @@ function cargarTarifas(
     categoriaId,
     tarifaSeleccionada = null,
     bloquear = false,
-    incluirTodas = false
+    incluirTodas = false,
+    autoSeleccionarDefault = true
 ) {
 
     fetch(
@@ -572,7 +577,7 @@ function cargarTarifas(
 
         });
 
-        if (!tarifaSeleccionada) {
+        if ( !tarifaSeleccionada && autoSeleccionarDefault ) {
 
             for (let i = 0; i < tarifa.options.length; i++) {
 
@@ -924,15 +929,28 @@ elseif ($_GET['form'] == 'cobrar') {
     require_once "modules/vehiculos/calcular_tarifa.php";
 
     $id = (int) $_GET['id'];
+
     $tarifa_id = (int) $_GET['tarifa_id'];
+
     $categoria_id = (int) $_GET['categoria_id'];
 
-    $resultado = calcularTarifaVehiculo(
-        $mysqli,
-        $id
-    );
+    /* =========================================
+       OBTENER VEHICULO
+    ========================================= */
 
-    if (!$resultado) {
+    $queryVehiculo = mysqli_query($mysqli, "
+
+        SELECT *
+        FROM vehiculos
+        WHERE id = '$id'
+        LIMIT 1
+
+    ");
+
+    $vehiculoBase =
+        mysqli_fetch_assoc($queryVehiculo);
+
+    if (!$vehiculoBase) {
 
         echo "
         <div class='alert alert-danger'>
@@ -942,19 +960,79 @@ elseif ($_GET['form'] == 'cobrar') {
         return;
     }
 
-    $veh = $resultado['vehiculo'];
+    /* =========================================
+       VEHICULO PREPAGADO
+    ========================================= */
 
-    $total = $resultado['total'];
+    if ((int)$vehiculoBase['pagado'] === 1) {
 
-    $detalle = $resultado['detalle'];
+        $veh = $vehiculoBase;
 
-    $alternativas = $resultado['alternativas'];
+        $total = 0;
 
-    $minutos_totales = $resultado['minutos_totales'];
+        $detalle = [];
 
-    $horas_completas = floor($minutos_totales / 60);
+        $alternativas = [];
 
-    $minutos_resto = $minutos_totales % 60;
+        $minutos_totales = 0;
+
+    }
+
+    /* =========================================
+       CALCULO NORMAL
+    ========================================= */
+
+    else {
+
+        $resultado = calcularTarifaVehiculo(
+            $mysqli,
+            $id
+        );
+
+        if (!$resultado) {
+
+            echo "
+            <div class='alert alert-danger'>
+                Vehículo no encontrado
+            </div>";
+
+            return;
+        }
+
+        $veh = $resultado['vehiculo'];
+
+        $total = $resultado['total'];
+
+        $detalle = $resultado['detalle'];
+
+        $alternativas = $resultado['alternativas'];
+
+        $minutos_totales =
+            $resultado['minutos_totales'];
+    }
+
+    /* =========================================
+       TIEMPO
+    ========================================= */
+
+    if ((int)$veh['pagado'] === 1) {
+
+        $horas_completas = 0;
+
+        $minutos_resto = 0;
+
+    } else {
+
+        $horas_completas =
+            floor($minutos_totales / 60);
+
+        $minutos_resto =
+            $minutos_totales % 60;
+    }
+
+    /* =========================================
+       FECHA / HORA
+    ========================================= */
 
     $fecha = date(
         'd/m/Y',
@@ -966,20 +1044,28 @@ elseif ($_GET['form'] == 'cobrar') {
         strtotime($veh['hora_ingreso'])
     );
 
+    /* =========================================
+       TARIFA
+    ========================================= */
+
     $descripcionTarifa = '';
 
     $queryTarifa = mysqli_query($mysqli, "
+
         SELECT descripcion
+
         FROM tarifas
+
         WHERE id = '$tarifa_id'
+
         LIMIT 1
+
     ");
 
     if ($rowTarifa = mysqli_fetch_assoc($queryTarifa)) {
 
         $descripcionTarifa =
             $rowTarifa['descripcion'];
-
     }
 
 ?>
