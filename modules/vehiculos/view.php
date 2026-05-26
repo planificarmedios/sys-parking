@@ -95,8 +95,6 @@ ORDER BY v.id DESC;
         while ($data = mysqli_fetch_assoc($query)) {
           $fecha = date('d/m/Y', strtotime($data['fecha_ingreso']));
           $hora  = date('H:i', strtotime($data['hora_ingreso']));
-          
-          echo "<script>console.log(" . json_encode($data) . ");</script>";
         ?>
           <tr>
             <td><?= $no++ ?></td>

@@ -8,3 +8,47 @@ ADD fecha_pago DATETIME
 NULL DEFAULT NULL;
 
 /***********************/
+
+CREATE TABLE configuracion_tarifas (
+
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    categoria_id INT NOT NULL,
+
+    minutos_tolerancia INT DEFAULT 5,
+
+    minutos_fraccion INT DEFAULT 30,
+
+    cobrar_hora_minima TINYINT(1) DEFAULT 1,
+
+    activo TINYINT(1) DEFAULT 1
+
+);
+
+/***********************/
+
+INSERT INTO configuracion_tarifas
+(
+    categoria_id,
+    minutos_tolerancia,
+    minutos_fraccion,
+    cobrar_hora_minima
+)
+
+VALUES
+
+(1, 5, 30, 1),
+(2, 5, 30, 1),
+(3, 5, 30, 1);
+
+/***********************/
+
+ALTER TABLE tarifas
+ADD es_hora_base TINYINT(1) DEFAULT 0;
+
+/***********************/
+
+ALTER TABLE tarifas
+ADD minutos_equivalencia INT DEFAULT NULL;
+
+/***************************/

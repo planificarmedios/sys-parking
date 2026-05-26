@@ -1,12 +1,137 @@
 <?php
 
-function calcularTarifaVehiculo($mysqli, $vehiculo_id)
-{
-    /* =========================================
-       VEHÍCULO
-    ========================================= */
+/*
+|--------------------------------------------------------------------------
+| CONFIGURACION POR CATEGORIA
+|--------------------------------------------------------------------------
+*/
 
-    $qVeh = mysqli_query($mysqli, "
+function obtenerConfiguracionCategoria(
+    $mysqli,
+    $categoria_id
+) {
+
+    $query = mysqli_query($mysqli, "
+
+        SELECT *
+
+        FROM configuracion_tarifas
+
+        WHERE categoria_id = '$categoria_id'
+        AND activo = 1
+
+        LIMIT 1
+
+    ");
+
+    return mysqli_fetch_assoc($query);
+
+}
+
+/*
+|--------------------------------------------------------------------------
+| CALCULAR MINUTOS FACTURABLES
+|--------------------------------------------------------------------------
+|
+| EJEMPLOS:
+|
+| 1h 03m => 60
+| 1h 07m => 90
+| 1h 35m => 90
+| 1h 36m => 120
+| 2h 05m => 120
+| 2h 06m => 150
+|
+*/
+
+function calcularMinutosFacturables(
+    $minutosTotales,
+    $tolerancia,
+    $fraccion,
+    $cobraHoraMinima = 1
+) {
+
+    /*
+        SI NO COBRA HORA MINIMA
+    */
+
+    if (!$cobraHoraMinima) {
+
+        return ceil(
+            $minutosTotales / $fraccion
+        ) * $fraccion;
+    }
+
+    /*
+        HASTA 60 MIN
+    */
+
+    if ($minutosTotales <= 60) {
+
+        return 60;
+    }
+
+    /*
+        RESTANTE DESPUES
+        DE PRIMERA HORA
+    */
+
+    $restante =
+        $minutosTotales - 60;
+
+    /*
+        TOLERANCIA
+    */
+
+    if ($restante <= $tolerancia) {
+
+        return 60;
+    }
+
+    /*
+        DESCONTAR TOLERANCIA
+    */
+
+    $restante =
+        $restante - $tolerancia;
+
+    /*
+        BLOQUES
+    */
+
+    $bloques =
+        ceil(
+            $restante / $fraccion
+        );
+
+    /*
+        TOTAL
+    */
+
+    return
+        60
+        +
+        ($bloques * $fraccion);
+}
+
+/*
+|--------------------------------------------------------------------------
+| MOTOR NUEVO
+|--------------------------------------------------------------------------
+*/
+
+function calcularTarifaVehiculoV2(
+    $mysqli,
+    $vehiculo_id
+) {
+
+    /*
+    |--------------------------------------------------------------------------
+    | 1. OBTENER VEHICULO
+    |--------------------------------------------------------------------------
+    */
+
+    $queryVehiculo = mysqli_query($mysqli, "
 
         SELECT
             v.*,
@@ -36,476 +161,394 @@ function calcularTarifaVehiculo($mysqli, $vehiculo_id)
         LEFT JOIN tarifas t
             ON t.id = v.tarifa_id
 
-        WHERE v.id = $vehiculo_id
+        WHERE v.id = '$vehiculo_id'
 
         LIMIT 1
+
     ");
 
-    $veh = mysqli_fetch_assoc($qVeh);
+    $vehiculo =
+        mysqli_fetch_assoc(
+            $queryVehiculo
+        );
 
-    if (!$veh) {
-        return null;
+    if (!$vehiculo) {
+
+        return false;
     }
 
-    /* =========================================
-       TIEMPO
-    ========================================= */
+    /*
+    |--------------------------------------------------------------------------
+    | 2. CATEGORIA
+    |--------------------------------------------------------------------------
+    */
 
-    $ingreso = strtotime(
-        $veh['fecha_ingreso'].' '.$veh['hora_ingreso']
+    $categoria_id =
+        (int)$vehiculo['categoria_final_id'];
+
+    /*
+    |--------------------------------------------------------------------------
+    | 3. CONFIGURACION
+    |--------------------------------------------------------------------------
+    */
+
+    $config =
+        obtenerConfiguracionCategoria(
+            $mysqli,
+            $categoria_id
+        );
+
+    $tolerancia =
+        (int)(
+            $config['minutos_tolerancia']
+            ?? 5
+        );
+
+    $fraccion =
+        (int)(
+            $config['minutos_fraccion']
+            ?? 30
+        );
+
+    $cobraHoraMinima =
+        (int)(
+            $config['cobrar_hora_minima']
+            ?? 1
+        );
+
+    /*
+    |--------------------------------------------------------------------------
+    | 4. TIEMPO
+    |--------------------------------------------------------------------------
+    */
+
+    $fechaIngreso = strtotime(
+
+        $vehiculo['fecha_ingreso']
+        . ' ' .
+        $vehiculo['hora_ingreso']
+
     );
 
-    $egreso = time();
+    $fechaEgreso = time();
 
-    $minutos_totales = ceil(
-        ($egreso - $ingreso) / 60
+    $minutosTotales = ceil(
+
+        ($fechaEgreso - $fechaIngreso)
+        / 60
+
     );
 
-    if ($minutos_totales < 1) {
-        $minutos_totales = 1;
+    if ($minutosTotales < 1) {
+
+        $minutosTotales = 1;
     }
 
-    /* =========================================
-       ABONO VIGENTE
-    ========================================= */
+    /*
+    |--------------------------------------------------------------------------
+    | 5. BUSCAR TARIFAS
+    |--------------------------------------------------------------------------
+    */
 
-    $abonoVigente = false;
+    $queryTarifas = mysqli_query($mysqli, "
 
-    $qAbono = mysqli_query($mysqli, "
-        SELECT id
-        FROM clientes
-        WHERE patente = '".$veh['patente']."'
-          AND activo = 1
-          AND fecha_fin >= CURDATE()
-        LIMIT 1
-    ");
-
-    if (mysqli_num_rows($qAbono) > 0) {
-
-        $abonoVigente = true;
-
-    }
-
-    /* =========================================
-       SI TIENE ABONO
-    ========================================= */
-
-    if ($abonoVigente) {
-
-        return [
-
-            'vehiculo' => $veh,
-
-            'minutos_totales' => $minutos_totales,
-
-            'total' => 0,
-
-            'detalle' => [
-                [
-                    'descripcion' => 'Abono vigente',
-                    'cantidad' => 1,
-                    'precio' => 0,
-                    'subtotal' => 0
-                ]
-            ],
-
-            'alternativas' => [
-                [
-                    'nombre' => 'Abono vigente',
-
-                    'abono_base' => $veh['tarifa'],
-
-                    'total' => 0,
-
-                    'items' => [
-                        [
-                            'descripcion' => 'Abono vigente',
-                            'cantidad' => 1,
-                            'precio' => 0,
-                            'subtotal' => 0
-                        ]
-                    ]
-                ]
-            ]
-
-        ];
-    }
-
-    /* =========================================
-       TARIFAS POR CATEGORÍA
-    ========================================= */
-
-    $categoria_id = (int) $veh['categoria_final_id'];
-
-    $qTarifas = mysqli_query($mysqli, "
         SELECT *
+
         FROM tarifas
-        WHERE activo = 1
-          AND categoria_id = $categoria_id
+
+        WHERE categoria_id = '$categoria_id'
+        AND activo = 1
+
     ");
 
-    $tarifas = [];
+    
+    $tarifaHora = null;
 
-    while ($t = mysqli_fetch_assoc($qTarifas)) {
+    $tarifaFraccion = null;
 
-        $tarifas[] = $t;
+    $tarifaTope = null;
 
+    while ($t = mysqli_fetch_assoc($queryTarifas)) {
+
+        echo "<script>";
+        echo "console.log(" . json_encode($t, JSON_UNESCAPED_UNICODE) . ")";
+        echo "</script>";
+
+        if (
+            (int)$t['es_tope_diario'] === 1
+        ) {
+
+            $tarifaTope = $t;
+        }
+
+        /*
+            IGNORAR ESTADIAS
+        */
+
+        elseif (
+            (int)$t['es_tarifa_estadia'] === 1
+        ) {
+
+            continue;
+        }
+
+        /*
+            FRACCION
+        */
+
+        elseif (
+            (int)$t['es_tarifa_fraccionable'] === 1
+        ) {
+
+            $tarifaFraccion = $t;
+        }
+
+        /*
+            TARIFA BASE
+        */
+
+        elseif (
+            (int)$t['es_default'] === 1
+        ) {
+
+            $tarifaHora = $t;
+        }
     }
 
-    $escenarios = [];
+    /*
+    |--------------------------------------------------------------------------
+    | 6. VALIDACIONES
+    |--------------------------------------------------------------------------
+    */
 
-    $hashes = [];
+    if (!$tarifaHora) {
 
-    $totalesExistentes = [];
+        return false;
+    }
 
-    /* =========================================
-       TARIFAS DIRECTAS
-    ========================================= */
+    /*
+    |--------------------------------------------------------------------------
+    | 7. VALORES
+    |--------------------------------------------------------------------------
+    */
 
-    foreach ($tarifas as $t) {
+    $valorHora =
+        (float)$tarifaHora['monto'];
 
-        $unidad = $t['unidad'];
+    $valorFraccion =
+        $tarifaFraccion
+        ? (float)$tarifaFraccion['monto']
+        : 0;
 
-        $valor = (int) $t['valor'];
+    $valorTope =
+        $tarifaTope
+        ? (float)$tarifaTope['monto']
+        : 0;
 
-        $monto = (float) $t['monto'];
+    /*
+    |--------------------------------------------------------------------------
+    | 8. MINUTOS FACTURABLES
+    |--------------------------------------------------------------------------
+    */
 
-        $subtotal = 0;
+    $minutosFacturables =
+        calcularMinutosFacturables(
 
-        $cantidad = 1;
+            $minutosTotales,
 
-        if ($unidad == 'minutos') {
+            $tolerancia,
 
-            $cantidad = ceil(
-                $minutos_totales / $valor
-            );
+            $fraccion,
 
-            $subtotal = $cantidad * $monto;
+            $cobraHoraMinima
 
-        }
+        );
 
-        elseif ($unidad == 'horas') {
+    /*
+    |--------------------------------------------------------------------------
+    | 9. CALCULAR
+    |--------------------------------------------------------------------------
+    */
 
-            $bloque = $valor * 60;
+    $total = 0;
 
-            $cantidad = ceil(
-                $minutos_totales / $bloque
-            );
+    $detalle = [];
 
-            $subtotal = $cantidad * $monto;
+    /*
+        HORAS COMPLETAS
+    */
 
-        }
+    $horas =
+        floor(
+            $minutosFacturables / 60
+        );
 
-        elseif ($unidad == 'fijo') {
+    /*
+        RESTO
+    */
 
-            $subtotal = $monto;
+    $resto =
+        $minutosFacturables % 60;
 
-        }
+    /*
+    |--------------------------------------------------------------------------
+    | COBRAR HORAS
+    |--------------------------------------------------------------------------
+    */
 
-        else {
+    if ($horas > 0) {
 
-            continue;
+        $subtotalHoras =
+            $horas * $valorHora;
 
-        }
+        $total += $subtotalHoras;
 
-        /* EVITAR TOTALES REPETIDOS */
+        $detalle[] = [
 
-        if (isset($totalesExistentes[$subtotal])) {
-            continue;
-        }
+            'descripcion' => $horas . ' hora(s) - ' . $tarifaHora['descripcion'],                
 
-        $totalesExistentes[$subtotal] = true;
+            'cantidad' =>
+                $horas,
 
-        $escenarios[] = [
+            'precio' =>
+                $valorHora,
 
-            'nombre' => $t['descripcion'],
-
-            'abono_base' => $veh['tarifa'],
-
-            'total' => $subtotal,
-
-            'items' => [
-                [
-                    'descripcion' => $t['descripcion'],
-                    'cantidad' => $cantidad,
-                    'precio' => $monto,
-                    'subtotal' => $subtotal
-                ]
-            ]
+            'subtotal' =>
+                $subtotalHoras
         ];
     }
 
-    /* =========================================
-   MOTOR INTELIGENTE
-   TARIFA BASE + FRACCIÓN
-========================================= */
+    /*
+    |--------------------------------------------------------------------------
+    | COBRAR FRACCION
+    |--------------------------------------------------------------------------
+    */
 
-$tarifasBase = [];
-$tarifasFraccion = [];
-$topeDiario = null;
-
-/* =========================================
-   SEPARAR TARIFAS
-========================================= */
-
-foreach ($tarifas as $t) {
-
-    /* TOPE */
-
-    if ((int)$t['es_tope_diario'] === 1) {
-
-        $topeDiario = $t;
-
-    }
-
-    /* FRACCIONABLES */
+    $cantidadFracciones = 0;
 
     if (
-        (int)$t['es_tarifa_fraccionable'] === 1
+        $resto > 0
         &&
-        (
-            $t['unidad'] == 'minutos'
-            ||
-            $t['unidad'] == 'horas'
-        )
+        $tarifaFraccion
     ) {
 
-        $tarifasFraccion[] = $t;
-
-    }
-
-    /* BASE */
-
-    else {
-
-        $tarifasBase[] = $t;
-
-    }
-}
-
-/* =========================================
-   ANALIZAR TARIFAS BASE
-========================================= */
-
-foreach ($tarifasBase as $base) {
-
-    $unidad = $base['unidad'];
-
-    $valor = (int)$base['valor'];
-
-    $monto = (float)$base['monto'];
-
-    $bloqueMinutos = 0;
-
-    if ($unidad == 'horas') {
-
-        $bloqueMinutos = $valor * 60;
-
-    }
-
-    elseif ($unidad == 'minutos') {
-
-        $bloqueMinutos = $valor;
-
-    }
-
-    else {
-
-        continue;
-    }
-
-    /* =========================================
-       CANTIDAD ENTERA
-    ========================================= */
-
-    $cantidadBase = floor(
-        $minutos_totales / $bloqueMinutos
-    );
-
-    $remanente =
-        $minutos_totales
-        -
-        ($cantidadBase * $bloqueMinutos);
-
-    $subtotal =
-        $cantidadBase * $monto;
-
-    $items = [];
-
-    if ($cantidadBase > 0) {
-
-        $items[] = [
-
-            'descripcion' => $base['descripcion'],
-
-            'cantidad' => $cantidadBase,
-
-            'precio' => $monto,
-
-            'subtotal' => $subtotal
-        ];
-    }
-
-    /* =========================================
-       BUSCAR MEJOR FRACCIÓN
-    ========================================= */
-
-    if ($remanente > 0) {
-
-        $mejorFraccion = null;
-
-        foreach ($tarifasFraccion as $frac) {
-
-            $bloqueFrac =
-                ($frac['unidad'] == 'horas')
-                ? ((int)$frac['valor'] * 60)
-                : (int)$frac['valor'];
-
-            $cantFrac = ceil(
-                $remanente / $bloqueFrac
+        $cantidadFracciones =
+            ceil(
+                $resto / $fraccion
             );
 
-            $subFrac =
-                $cantFrac * $frac['monto'];
+        $subtotalFraccion =
+            $cantidadFracciones
+            * $valorFraccion;
 
-            if (
-                !$mejorFraccion
-                ||
-                $subFrac < $mejorFraccion['subtotal']
-            ) {
+        $total += $subtotalFraccion;
 
-                $mejorFraccion = [
+        $detalle[] = [
 
-                    'descripcion' =>
-                        $frac['descripcion'],
+            'descripcion' =>
 
-                    'cantidad' => $cantFrac,
+                (
+                    $cantidadFracciones == 1
+                    ? '1/2 hora'
+                    : $cantidadFracciones . ' fracciones'
+                )
 
-                    'precio' => $frac['monto'],
+                . ' - ' .
 
-                    'subtotal' => $subFrac
-                ];
-            }
-        }
+                $tarifaFraccion['descripcion'],
 
-        if ($mejorFraccion) {
+            'cantidad' =>
+                $cantidadFracciones,
 
-            $subtotal +=
-                $mejorFraccion['subtotal'];
+            'precio' =>
+                $valorFraccion,
 
-            $items[] =
-                $mejorFraccion;
-        }
-    }
-
-    /* =========================================
-       TOPE DIARIO
-    ========================================= */
-
-    if ($topeDiario) {
-
-        $subtotal = min(
-            $subtotal,
-            (float)$topeDiario['monto']
-        );
-    }
-
-    /* =========================================
-       EVITAR DUPLICADOS
-    ========================================= */
-
-    if (isset($totalesExistentes[$subtotal])) {
-        continue;
-    }
-
-    $totalesExistentes[$subtotal] = true;
-
-    /* =========================================
-       GUARDAR ESCENARIO
-    ========================================= */
-
-    $escenarios[] = [
-
-        'nombre' => $base['descripcion'],
-
-        'abono_base' => $veh['tarifa'],
-
-        'total' => $subtotal,
-
-        'items' => $items
-
-    ];
-}
-
-/* =========================================
-   SI SOLO HAY FRACCIONES
-========================================= */
-
-if (empty($escenarios)) {
-
-    foreach ($tarifasFraccion as $frac) {
-
-        $bloque =
-            ($frac['unidad'] == 'horas')
-            ? ((int)$frac['valor'] * 60)
-            : (int)$frac['valor'];
-
-        $cantidad = ceil(
-            $minutos_totales / $bloque
-        );
-
-        $subtotal =
-            $cantidad * $frac['monto'];
-
-        if (isset($totalesExistentes[$subtotal])) {
-            continue;
-        }
-
-        $totalesExistentes[$subtotal] = true;
-
-        $escenarios[] = [
-
-            'nombre' => $frac['descripcion'],
-
-            'abono_base' => $veh['tarifa'],
-
-            'total' => $subtotal,
-
-            'items' => [
-                [
-                    'descripcion' =>
-                        $frac['descripcion'],
-
-                    'cantidad' => $cantidad,
-
-                    'precio' => $frac['monto'],
-
-                    'subtotal' => $subtotal
-                ]
-            ]
+            'subtotal' =>
+                $subtotalFraccion
         ];
     }
-}
 
-    usort($escenarios, function($a, $b){
+    /*
+    |--------------------------------------------------------------------------
+    | TOPE DIARIO
+    |--------------------------------------------------------------------------
+    */
 
-        return $a['total'] <=> $b['total'];
+    if (
 
-    });
+        $tarifaTope
+        &&
+        $total > $valorTope
 
-    $mejor = $escenarios[0];
+    ) {
+
+        $total = $valorTope;
+
+        $detalle[] = [
+
+            'descripcion' =>
+                $tarifaTope['descripcion'],
+
+            'cantidad' => 1,
+
+            'precio' =>
+                $valorTope,
+
+            'subtotal' =>
+                $valorTope
+        ];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | RETURN
+    |--------------------------------------------------------------------------
+    */
 
     return [
 
-        'vehiculo' => $veh,
+        'vehiculo' => $vehiculo,
 
-        'minutos_totales' => $minutos_totales,
+        'total' => $total,
 
-        'total' => $mejor['total'],
+        'detalle' => $detalle,
 
-        'detalle' => $mejor['items'],
+        'minutos_totales' =>
+            $minutosTotales,
 
-        'alternativas' => $escenarios
+        'minutos_facturables' =>
+            $minutosFacturables,
+
+        'tolerancia' =>
+            $tolerancia,
+
+        'fraccion' =>
+            $fraccion,
+
+        'cantidad_fracciones' =>
+            $cantidadFracciones,
+
+        'alternativas' => []
 
     ];
+}
+
+/*
+|--------------------------------------------------------------------------
+| FUNCION ORIGINAL
+|--------------------------------------------------------------------------
+|
+| Para compatibilidad.
+|
+*/
+
+function calcularTarifaVehiculo(
+    $mysqli,
+    $vehiculo_id
+) {
+
+    return calcularTarifaVehiculoV2(
+        $mysqli,
+        $vehiculo_id
+    );
 }

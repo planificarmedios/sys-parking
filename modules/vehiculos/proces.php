@@ -29,19 +29,23 @@ if ($_GET['act'] == 'insert') {
         strtoupper(trim($_POST['patente']))
     );
 
-    $tarifa_id = (int) $_POST['tarifa_id'];
+    $tarifa_id =
+        (int) $_POST['tarifa_id'];
 
-    $categoria_id = (int) $_POST['categoria_id'];
+    $categoria_id =
+        (int) $_POST['categoria_id'];
 
-    $modo_ticket = $_POST['modo_ticket'] ?? 'preview';
+    $modo_ticket =
+        $_POST['modo_ticket'] ?? 'preview';
 
-    $medio_cobro = mysqli_real_escape_string(
-        $mysqli,
-        $_POST['medio_cobro'] ?? ''
-    );
+    $medio_cobro =
+        mysqli_real_escape_string(
+            $mysqli,
+            $_POST['medio_cobro'] ?? ''
+        );
 
     /* =========================================
-       OBTENER DATOS TARIFA
+       OBTENER TARIFA
     ========================================= */
 
     $queryTarifa = mysqli_query($mysqli, "
@@ -61,14 +65,19 @@ if ($_GET['act'] == 'insert') {
 
     $tarifa = mysqli_fetch_assoc($queryTarifa);
 
+    if (!$tarifa) {
+
+        die('Tarifa inexistente');
+    }
+
     $descripcionTarifa =
-        $tarifa['descripcion'] ?? '';
+        $tarifa['descripcion'];
 
     $montoTarifa =
-        (float)($tarifa['monto'] ?? 0);
+        (float)$tarifa['monto'];
 
     $esEstadia =
-        (int)($tarifa['es_tope_diario'] ?? 0);
+        (int)$tarifa['es_tope_diario'];
 
     /* =========================================
        INSERT VEHICULO
@@ -84,7 +93,8 @@ if ($_GET['act'] == 'insert') {
             tarifa_id,
             categoria_id,
             en_playa,
-            pagado
+            pagado,
+            estado
         )
 
         VALUES
@@ -95,16 +105,18 @@ if ($_GET['act'] == 'insert') {
             '$tarifa_id',
             '$categoria_id',
             1,
-            ".($esEstadia ? 1 : 0)."
+            ".($esEstadia ? 1 : 0).",
+            'activo'
         )
 
     ") or die(mysqli_error($mysqli));
 
-    $vehiculo_id = mysqli_insert_id($mysqli);
+    $vehiculo_id =
+        mysqli_insert_id($mysqli);
 
     /* =========================================
        SI ES ESTADIA:
-       GENERAR COBRO EN CAJA
+       REGISTRAR COBRO EN CAJA
     ========================================= */
 
     if ($esEstadia) {
@@ -117,8 +129,8 @@ if ($_GET['act'] == 'insert') {
 
         mysqli_query($mysqli, "
 
-            INSERT INTO caja (
-
+            INSERT INTO caja
+            (
                 vehiculo_id,
                 cliente_id,
                 patente,
@@ -129,11 +141,10 @@ if ($_GET['act'] == 'insert') {
                 monto,
                 fecha_movimiento,
                 detalle
-
             )
 
-            VALUES (
-
+            VALUES
+            (
                 '$vehiculo_id',
                 NULL,
                 '$patente',
@@ -144,14 +155,13 @@ if ($_GET['act'] == 'insert') {
                 '$montoTarifa',
                 NOW(),
                 '$detalle'
-
             )
 
         ") or die(mysqli_error($mysqli));
     }
 
     /* =========================================
-       REDIRECCION TICKET
+       REDIRECCION
     ========================================= */
 
     if ($modo_ticket == 'preview') {
@@ -176,12 +186,14 @@ if ($_GET['act'] == 'insert') {
 
 elseif ($_GET['act'] == 'update') {
 
-    $id = (int) $_POST['id'];
+    $id =
+        (int) $_POST['id'];
 
-    $patente = mysqli_real_escape_string(
-        $mysqli,
-        strtoupper(trim($_POST['patente']))
-    );
+    $patente =
+        mysqli_real_escape_string(
+            $mysqli,
+            strtoupper(trim($_POST['patente']))
+        );
 
     mysqli_query($mysqli, "
 
@@ -193,7 +205,9 @@ elseif ($_GET['act'] == 'update') {
 
     ") or die(mysqli_error($mysqli));
 
-    header("Location: ../../main.php?module=vehiculos&alert=2");
+    header(
+        "Location: ../../main.php?module=vehiculos&alert=2"
+    );
 
     exit;
 }
@@ -204,7 +218,8 @@ elseif ($_GET['act'] == 'update') {
 
 elseif ($_GET['act'] == 'delete') {
 
-    $id = (int) $_GET['id'];
+    $id =
+        (int) $_GET['id'];
 
     mysqli_query($mysqli, "
 
@@ -214,39 +229,115 @@ elseif ($_GET['act'] == 'delete') {
 
     ") or die(mysqli_error($mysqli));
 
-    header("Location: ../../main.php?module=vehiculos&alert=3");
+    header(
+        "Location: ../../main.php?module=vehiculos&alert=3"
+    );
 
     exit;
 }
 
-
+/* =========================================================
+   COBRAR / EGRESAR
+========================================================= */
 
 elseif ($_GET['act'] == 'cobrar') {
 
     if (!isset($_POST['id'])) {
-          die('ID no recibido');
+
+        die('ID no recibido');
     }
 
-      $id = (int) $_POST['id'];
-      $patente  =  $_POST['patente'];
-      $categoria_hidden = (int) $_POST['categoria_hidden'];
-      $medio_cobro = $_POST['medio_cobro'];
-      $total_hidden = (float) $_POST['total_hidden'];
-      $tarifa_id_hidden = (int) $_POST['tarifa_id_hidden'];
+    $id =
+        (int) $_POST['id'];
 
-      echo "<script>
+    $patente =
+        mysqli_real_escape_string(
+            $mysqli,
+            $_POST['patente']
+        );
 
-        console.log('ID:', ".json_encode($id).");
-        console.log('PATENTE:', ".json_encode($patente).");
-        console.log('CATEGORIA_ID:', ".json_encode($categoria_hidden).");
-        console.log('MEDIO_COBRO:', ".json_encode($medio_cobro).");
-        console.log('total_hidden:', ".json_encode($total_hidden).");
-        console.log('TARIFA_ID:', ".json_encode($tarifa_id_hidden).");
+    $categoria_hidden =
+        (int) $_POST['categoria_hidden'];
 
-        </script>";
+    $medio_cobro =
+    mysqli_real_escape_string(
+        $mysqli,
+        $_POST['medio_cobro'] ?? ''
+    );
 
-    
-      mysqli_query($mysqli, "
+    $total_hidden =
+        (float) $_POST['total_hidden'];
+
+    $tarifa_id_hidden =
+        (int) $_POST['tarifa_id_hidden'];
+
+    /* =========================================
+       OBTENER VEHICULO
+    ========================================= */
+
+    $queryVehiculo = mysqli_query($mysqli, "
+
+        SELECT *
+
+        FROM vehiculos
+
+        WHERE id = '$id'
+
+        LIMIT 1
+
+    ");
+
+    $vehiculo =
+        mysqli_fetch_assoc($queryVehiculo);
+
+    if (!$vehiculo) {
+
+        die('Vehículo inexistente');
+    }
+
+    /* =========================================
+       VEHICULO PREPAGADO
+       SOLO EGRESA
+    ========================================= */
+
+    if ((int)$vehiculo['pagado'] === 1) {
+
+        mysqli_query($mysqli, "
+
+            UPDATE vehiculos
+
+            SET
+
+                fecha_egreso = CURDATE(),
+                hora_egreso = CURTIME(),
+                en_playa = 0,
+                estado = 'finalizado'
+
+            WHERE id = '$id'
+
+        ") or die(mysqli_error($mysqli));
+
+        header(
+            "Location: ../../main.php?module=vehiculos&alert=salida_ok"
+        );
+
+        exit;
+    }
+
+    /* =========================================
+       REGISTRAR COBRO EN CAJA
+    ========================================= */
+
+    $concepto =
+        'Cobro estacionamiento';
+
+    $detalle =
+        'Cobro generado al egreso';
+
+    var_dump($medio_cobro);
+
+    mysqli_query($mysqli, "
+
         INSERT INTO caja
         (
             vehiculo_id,
@@ -260,42 +351,51 @@ elseif ($_GET['act'] == 'cobrar') {
             detalle,
             fecha_movimiento
         )
+
         VALUES
         (
-            '".$_POST['id']."',
+            '$id',
             0,
-            '".$patente."',
-            '".$categoria_hidden."',
-            '".$tarifa_id_hidden."',
+            '$patente',
+            '$categoria_hidden',
+            '$tarifa_id_hidden',
             '$concepto',
             '$medio_cobro',
-            '".$total_hidden."',
+            '$total_hidden',
             '$detalle',
             NOW()
         )
+
     ") or die(mysqli_error($mysqli));
 
-    /* =========================================================
+    /* =========================================
        REGISTRAR EGRESO
-    ========================================================= */
+    ========================================= */
 
     mysqli_query($mysqli, "
+
         UPDATE vehiculos
+
         SET
+
             fecha_egreso = CURDATE(),
             hora_egreso = CURTIME(),
+            en_playa = 0,
             estado = 'finalizado'
-        WHERE id = $id
+
+        WHERE id = '$id'
+
     ") or die(mysqli_error($mysqli));
 
-    /* =========================================================
-       REDIRECCIONAR
-    ========================================================= */
+    /* =========================================
+       REDIRECCION
+    ========================================= */
 
-    header("Location: ../../main.php?module=vehiculos&alert=salida_ok");
+    header(
+        "Location: ../../main.php?module=vehiculos&alert=salida_ok"
+    );
+
     exit;
-
-
-
 }
+
 ?>

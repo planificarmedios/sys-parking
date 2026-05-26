@@ -74,7 +74,6 @@ WHERE $where
 ");
 
 $totalData = mysqli_fetch_assoc($qTotal);
-
 $totalCaja = $totalData['total'] ?? 0;
 
 ?>
@@ -284,7 +283,9 @@ $totalCaja = $totalData['total'] ?? 0;
             <tbody>
 
               <?php while ($data = mysqli_fetch_assoc($query)) { ?>
-
+                <script>
+                   console.log(<?= json_encode($data) ?>);
+                </script>
                 <tr>
 
                   <td>
